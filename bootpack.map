@@ -1,5 +1,9 @@
 text size :    432(0x001B0)
+<<<<<<< HEAD
 data size :     64(0x00040)
+=======
+data size :     48(0x00030)
+>>>>>>> 7a8fed4cef952a6780c2a85b5c15057f6edf85b9
 bss  size :      0(0x00000)
 
 0x00000024 : (.text)
