@@ -108,7 +108,7 @@
    108 0000C2C8 74 10                                   jz      skip                ; 転送すべきものが無い
    109 0000C2CA 67 66 8B 73 14                          mov     esi, [EBX+20]       ; 転送先
    110 0000C2CF 66 01 DE                                add     esi, ebx
-   111 0000C2D2 67 66 8B 7B 14                          mov     edi, [ebx+20]       ; 転送先
+   111 0000C2D2 67 66 8B 7B 0C                          mov     edi, [ebx+12]       ; 転送先
    112 0000C2D7 E8 0014                                 call    memcpy
    113 0000C2DA                                 skip:
    114 0000C2DA 67 66 8B 63 0C                          MOV     ESP, [EBX+12]       ; スタック初期値

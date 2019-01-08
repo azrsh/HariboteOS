@@ -1,9 +1,5 @@
 text size :    432(0x001B0)
-<<<<<<< HEAD
-data size :     64(0x00040)
-=======
 data size :     48(0x00030)
->>>>>>> 7a8fed4cef952a6780c2a85b5c15057f6edf85b9
 bss  size :      0(0x00000)
 
 0x00000024 : (.text)
@@ -29,22 +25,6 @@ bss  size :      0(0x00000)
 0x00000000 : (.data)
 0x00000000 : (.data)
 0x00310000 : (.data)
-0x00310000 : _Color8_000000
-0x00310001 : _Color8_FF0000
-0x00310002 : _Color8_00FF00
-0x00310003 : _Color8_FFFF00
-0x00310004 : _Color8_0000FF
-0x00310005 : _Color8_FF00FF
-0x00310006 : _Color8_00FFFF
-0x00310007 : _Color8_FFFFFF
-0x00310008 : _Color8_C6C6C6
-0x00310009 : _Color8_840000
-0x0031000A : _Color8_008400
-0x0031000B : _Color8_848400
-0x0031000C : _Color8_000084
-0x0031000D : _Color8_840084
-0x0031000E : _Color8_008484
-0x0031000F : _Color8_848484
 0x00000000 : (.bss)
 0x00000000 : (.bss)
 0x00000000 : (.bss)

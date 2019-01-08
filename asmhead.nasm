@@ -108,7 +108,7 @@ pipelineflush:
         jz      skip                ; 転送すべきものが無い
         mov     esi, [EBX+20]       ; 転送先
         add     esi, ebx
-        mov     edi, [ebx+20]       ; 転送先
+        mov     edi, [ebx+12]       ; 転送先
         call    memcpy
 skip:
         MOV     ESP, [EBX+12]       ; スタック初期値
