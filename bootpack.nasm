@@ -9,6 +9,55 @@
 	EXTERN	_io_out8
 	EXTERN	_io_store_eflags
 [FILE "bootpack.c"]
+	GLOBAL	_Color8_000000
+[SECTION .data]
+_Color8_000000:
+	DB	0
+	GLOBAL	_Color8_FF0000
+_Color8_FF0000:
+	DB	1
+	GLOBAL	_Color8_00FF00
+_Color8_00FF00:
+	DB	2
+	GLOBAL	_Color8_FFFF00
+_Color8_FFFF00:
+	DB	3
+	GLOBAL	_Color8_0000FF
+_Color8_0000FF:
+	DB	4
+	GLOBAL	_Color8_FF00FF
+_Color8_FF00FF:
+	DB	5
+	GLOBAL	_Color8_00FFFF
+_Color8_00FFFF:
+	DB	6
+	GLOBAL	_Color8_FFFFFF
+_Color8_FFFFFF:
+	DB	7
+	GLOBAL	_Color8_C6C6C6
+_Color8_C6C6C6:
+	DB	8
+	GLOBAL	_Color8_840000
+_Color8_840000:
+	DB	9
+	GLOBAL	_Color8_008400
+_Color8_008400:
+	DB	10
+	GLOBAL	_Color8_848400
+_Color8_848400:
+	DB	11
+	GLOBAL	_Color8_000084
+_Color8_000084:
+	DB	12
+	GLOBAL	_Color8_840084
+_Color8_840084:
+	DB	13
+	GLOBAL	_Color8_008484
+_Color8_008484:
+	DB	14
+	GLOBAL	_Color8_848484
+_Color8_848484:
+	DB	15
 [SECTION .text]
 	GLOBAL	_HariMain
 _HariMain:
