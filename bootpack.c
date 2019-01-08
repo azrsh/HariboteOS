@@ -35,26 +35,24 @@ void HariMain(void)
     x_size = 320;
     y_size = 200;
 
-    boxfill8(vram, 320, Color8_FF0000, 20, 20, 120, 120);
-    boxfill8(vram, 320, Color8_00FF00, 70, 50, 170, 150);
-    boxfill8(vram, 320, Color8_0000FF, 120, 80, 220, 180);
+    boxfill8(vram, x_size, Color8_008484, 0, 0, x_size - 1, y_size - 29);           //デスクトップの背景
+    boxfill8(vram, x_size, Color8_C6C6C6, 0, y_size - 28, x_size - 1, y_size - 28); //タスクバーとの境界の灰色線
+    boxfill8(vram, x_size, Color8_FFFFFF, 0, y_size - 27, x_size - 1, y_size - 27); //タスクバーとの境界の白線
+    boxfill8(vram, x_size, Color8_C6C6C6, 0, y_size - 26, x_size - 1, y_size - 1);  //タスクバーとの境界線とタスクバーの塗りつぶしの灰色
 
-    /*boxfill8(vram, x_size, Color8_008484, 0, 0, x_size - 1, y_size - 29);
-    boxfill8(vram, x_size, Color8_C6C6C6, 0, y_size - 28, x_size - 1, y_size - 28);
-    boxfill8(vram, x_size, Color8_FFFFFF, 0, y_size - 27, x_size - 1, y_size - 27);
-    boxfill8(vram, x_size, Color8_C6C6C6, 0, y_size - 26, x_size - 1, y_size - 26);
-
+    //タスクバー右側のアイコンの境界線
     boxfill8(vram, x_size, Color8_FFFFFF, 3, y_size - 24, 59, y_size - 24);
-    boxfill8(vram, x_size, Color8_FFFFFF, 2, y_size - 24, 2, y_size - 24);
+    boxfill8(vram, x_size, Color8_FFFFFF, 2, y_size - 24, 2, y_size - 4);
     boxfill8(vram, x_size, Color8_848484, 3, y_size - 4, 59, y_size - 4);
-    boxfill8(vram, x_size, Color8_848484, 59, y_size - 23, 59, y_size - 23);
+    boxfill8(vram, x_size, Color8_848484, 59, y_size - 23, 59, y_size - 5);
     boxfill8(vram, x_size, Color8_000000, 2, y_size - 3, 59, y_size - 3);
-    boxfill8(vram, x_size, Color8_000000, 60, y_size - 24, 60, y_size - 24);
+    boxfill8(vram, x_size, Color8_000000, 60, y_size - 24, 60, y_size - 3);
 
+    //タスクバー左側のアイコンの境界線
     boxfill8(vram, x_size, Color8_848484, x_size - 47, y_size - 24, x_size - 4, y_size - 24);
     boxfill8(vram, x_size, Color8_848484, x_size - 47, y_size - 23, x_size - 47, y_size - 4);
     boxfill8(vram, x_size, Color8_FFFFFF, x_size - 47, y_size - 3, x_size - 4, y_size - 3);
-    boxfill8(vram, x_size, Color8_FFFFFF, x_size - 3, y_size - 24, x_size - 3, y_size - 3);*/
+    boxfill8(vram, x_size, Color8_FFFFFF, x_size - 3, y_size - 24, x_size - 3, y_size - 3);
 
     for (;;)
     {
