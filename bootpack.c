@@ -29,11 +29,16 @@ void HariMain(void)
 {
     char *vram;
     int x_size, y_size;
+    short *bootinfo_screenX, *bootinfo_screenY;
+    int *bootinfo_vram;
 
     init_palette();
-    vram = (char *)0xa0000;
-    x_size = 320;
-    y_size = 200;
+    bootinfo_screenX = (short *)0x0ff4; //asmhead.nasmのEQUが並んでる当たりに対応している
+    bootinfo_screenY = (short *)0x0ff6;
+    bootinfo_vram = (int *)0x0ff8;
+    x_size = *bootinfo_screenX;
+    y_size = *bootinfo_screenY;
+    vram = (char *)*bootinfo_vram;
 
     //画面の下絵(？)
     boxfill8(vram, x_size, Color8_008484, 0, 0, x_size - 1, y_size - 29);           //デスクトップの背景
