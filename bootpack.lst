@@ -4,20 +4,140 @@
      4 00000000                                 [OPTION 1]
      5 00000000                                 [BITS 32]
      6 00000000                                 	EXTERN	_io_hlt
-     7 00000000                                 [FILE "bootpack.c"]
-     8                                          [SECTION .text]
-     9 00000000                                 	GLOBAL	_HariMain
-    10 00000000                                 _HariMain:
-    11 00000000 55                              	PUSH	EBP
-    12 00000001 31 D2                           	XOR	EDX,EDX
-    13 00000003 89 E5                           	MOV	EBP,ESP
-    14 00000005                                 L6:
-    15 00000005 88 D0                           	MOV	AL,DL
-    16 00000007 83 E0 0F                        	AND	EAX,15
-    17 0000000A 88 82 000A0000                  	MOV	BYTE [655360+EDX],AL
-    18 00000010 42                              	INC	EDX
-    19 00000011 81 FA 0000FFFF                  	CMP	EDX,65535
-    20 00000017 7E EC                           	JLE	L6
-    21 00000019                                 L7:
-    22 00000019 E8 [00000000]                   	CALL	_io_hlt
-    23 0000001E EB F9                           	JMP	L7
+     7 00000000                                 	EXTERN	_io_load_eflags
+     8 00000000                                 	EXTERN	_io_cli
+     9 00000000                                 	EXTERN	_io_out8
+    10 00000000                                 	EXTERN	_io_store_eflags
+    11 00000000                                 [FILE "bootpack.c"]
+    12                                          [SECTION .text]
+    13 00000000                                 	GLOBAL	_HariMain
+    14 00000000                                 _HariMain:
+    15 00000000 55                              	PUSH	EBP
+    16 00000001 31 D2                           	XOR	EDX,EDX
+    17 00000003 89 E5                           	MOV	EBP,ESP
+    18 00000005                                 L6:
+    19 00000005 88 D0                           	MOV	AL,DL
+    20 00000007 83 E0 0F                        	AND	EAX,15
+    21 0000000A 88 82 000A0000                  	MOV	BYTE [655360+EDX],AL
+    22 00000010 42                              	INC	EDX
+    23 00000011 81 FA 0000FFFF                  	CMP	EDX,65535
+    24 00000017 7E EC                           	JLE	L6
+    25 00000019                                 L7:
+    26 00000019 E8 [00000000]                   	CALL	_io_hlt
+    27 0000001E EB F9                           	JMP	L7
+    28                                          [SECTION .data]
+    29 00000000                                 _table_rgb.0:
+    30 00000000 00                              	DB	0
+    31 00000001 00                              	DB	0
+    32 00000002 00                              	DB	0
+    33 00000003 FF                              	DB	-1
+    34 00000004 00                              	DB	0
+    35 00000005 00                              	DB	0
+    36 00000006 00                              	DB	0
+    37 00000007 FF                              	DB	-1
+    38 00000008 00                              	DB	0
+    39 00000009 FF                              	DB	-1
+    40 0000000A FF                              	DB	-1
+    41 0000000B 00                              	DB	0
+    42 0000000C 00                              	DB	0
+    43 0000000D 00                              	DB	0
+    44 0000000E FF                              	DB	-1
+    45 0000000F FF                              	DB	-1
+    46 00000010 00                              	DB	0
+    47 00000011 FF                              	DB	-1
+    48 00000012 00                              	DB	0
+    49 00000013 FF                              	DB	-1
+    50 00000014 FF                              	DB	-1
+    51 00000015 FF                              	DB	-1
+    52 00000016 FF                              	DB	-1
+    53 00000017 FF                              	DB	-1
+    54 00000018 C6                              	DB	-58
+    55 00000019 C6                              	DB	-58
+    56 0000001A C6                              	DB	-58
+    57 0000001B 84                              	DB	-124
+    58 0000001C 00                              	DB	0
+    59 0000001D 00                              	DB	0
+    60 0000001E 00                              	DB	0
+    61 0000001F 84                              	DB	-124
+    62 00000020 00                              	DB	0
+    63 00000021 84                              	DB	-124
+    64 00000022 84                              	DB	-124
+    65 00000023 00                              	DB	0
+    66 00000024 00                              	DB	0
+    67 00000025 00                              	DB	0
+    68 00000026 84                              	DB	-124
+    69 00000027 84                              	DB	-124
+    70 00000028 00                              	DB	0
+    71 00000029 84                              	DB	-124
+    72 0000002A 00                              	DB	0
+    73 0000002B 84                              	DB	-124
+    74 0000002C 84                              	DB	-124
+    75 0000002D 84                              	DB	-124
+    76 0000002E 84                              	DB	-124
+    77 0000002F 84                              	DB	-124
+    78                                          [SECTION .text]
+    79 00000020                                 	GLOBAL	_init_palette
+    80 00000020                                 _init_palette:
+    81 00000020 55                              	PUSH	EBP
+    82 00000021 89 E5                           	MOV	EBP,ESP
+    83 00000023 68 [00000000]                   	PUSH	_table_rgb.0
+    84 00000028 6A 0F                           	PUSH	15
+    85 0000002A 6A 00                           	PUSH	0
+    86 0000002C E8 00000002                     	CALL	_set_palette
+    87 00000031 C9                              	LEAVE
+    88 00000032 C3                              	RET
+    89 00000033                                 	GLOBAL	_set_palette
+    90 00000033                                 _set_palette:
+    91 00000033 55                              	PUSH	EBP
+    92 00000034 89 E5                           	MOV	EBP,ESP
+    93 00000036 57                              	PUSH	EDI
+    94 00000037 56                              	PUSH	ESI
+    95 00000038 53                              	PUSH	EBX
+    96 00000039 51                              	PUSH	ECX
+    97 0000003A 8B 5D 08                        	MOV	EBX,DWORD [8+EBP]
+    98 0000003D 8B 7D 0C                        	MOV	EDI,DWORD [12+EBP]
+    99 00000040 8B 75 10                        	MOV	ESI,DWORD [16+EBP]
+   100 00000043 E8 [00000000]                   	CALL	_io_load_eflags
+   101 00000048 89 45 F0                        	MOV	DWORD [-16+EBP],EAX
+   102 0000004B E8 [00000000]                   	CALL	_io_cli
+   103 00000050 53                              	PUSH	EBX
+   104 00000051 68 000003C8                     	PUSH	968
+   105 00000056 E8 [00000000]                   	CALL	_io_out8
+   106 0000005B 39 FB                           	CMP	EBX,EDI
+   107 0000005D 58                              	POP	EAX
+   108 0000005E 5A                              	POP	EDX
+   109 0000005F 7D 48                           	JGE	L19
+   110 00000061 29 DF                           	SUB	EDI,EBX
+   111 00000063 89 FB                           	MOV	EBX,EDI
+   112 00000065                                 L17:
+   113 00000065 8A 06                           	MOV	AL,BYTE [ESI]
+   114 00000067 C0 E8 02                        	SHR	AL,2
+   115 0000006A 0F B6 C0                        	MOVZX	EAX,AL
+   116 0000006D 50                              	PUSH	EAX
+   117 0000006E 68 000003C9                     	PUSH	969
+   118 00000073 E8 [00000000]                   	CALL	_io_out8
+   119 00000078 8A 46 01                        	MOV	AL,BYTE [1+ESI]
+   120 0000007B C0 E8 02                        	SHR	AL,2
+   121 0000007E 0F B6 C0                        	MOVZX	EAX,AL
+   122 00000081 50                              	PUSH	EAX
+   123 00000082 68 000003C9                     	PUSH	969
+   124 00000087 E8 [00000000]                   	CALL	_io_out8
+   125 0000008C 8A 46 02                        	MOV	AL,BYTE [2+ESI]
+   126 0000008F C0 E8 02                        	SHR	AL,2
+   127 00000092 83 C6 03                        	ADD	ESI,3
+   128 00000095 0F B6 C0                        	MOVZX	EAX,AL
+   129 00000098 50                              	PUSH	EAX
+   130 00000099 68 000003C9                     	PUSH	969
+   131 0000009E E8 [00000000]                   	CALL	_io_out8
+   132 000000A3 83 C4 18                        	ADD	ESP,24
+   133 000000A6 4B                              	DEC	EBX
+   134 000000A7 75 BC                           	JNE	L17
+   135 000000A9                                 L19:
+   136 000000A9 8B 45 F0                        	MOV	EAX,DWORD [-16+EBP]
+   137 000000AC 89 45 08                        	MOV	DWORD [8+EBP],EAX
+   138 000000AF 8D 65 F4                        	LEA	ESP,DWORD [-12+EBP]
+   139 000000B2 5B                              	POP	EBX
+   140 000000B3 5E                              	POP	ESI
+   141 000000B4 5F                              	POP	EDI
+   142 000000B5 5D                              	POP	EBP
+   143 000000B6 E9 [00000000]                   	JMP	_io_store_eflags
