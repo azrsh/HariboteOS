@@ -35,6 +35,7 @@ void HariMain(void)
     x_size = 320;
     y_size = 200;
 
+    //画面の下絵(？)
     boxfill8(vram, x_size, Color8_008484, 0, 0, x_size - 1, y_size - 29);           //デスクトップの背景
     boxfill8(vram, x_size, Color8_C6C6C6, 0, y_size - 28, x_size - 1, y_size - 28); //タスクバーとの境界の灰色線
     boxfill8(vram, x_size, Color8_FFFFFF, 0, y_size - 27, x_size - 1, y_size - 27); //タスクバーとの境界の白線
