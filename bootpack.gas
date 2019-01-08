@@ -55,156 +55,14 @@ _Color8_848484:
 _HariMain:
 	pushl	%ebp
 	movl	%esp, %ebp
-	pushl	%edi
-	pushl	%esi
-	pushl	%ebx
-	subl	$20, %esp
 	call	_init_palette
-	movswl	4086,%ebx
+	movswl	4086,%eax
+	pushl	%eax
 	movswl	4084,%eax
-	movl	%eax, -20(%ebp)
-	movl	4088, %eax
-	movl	%eax, -16(%ebp)
-	movl	-20(%ebp), %edi
-	leal	-29(%ebx), %eax
-	decl	%edi
 	pushl	%eax
-	pushl	%edi
-	pushl	$0
-	pushl	$0
-	pushl	$14
-	pushl	-20(%ebp)
-	pushl	-16(%ebp)
-	call	_boxfill8
-	leal	-28(%ebx), %eax
-	pushl	%eax
-	pushl	%edi
-	pushl	%eax
-	pushl	$0
-	pushl	$8
-	pushl	-20(%ebp)
-	pushl	-16(%ebp)
-	call	_boxfill8
-	leal	-27(%ebx), %eax
-	addl	$56, %esp
-	pushl	%eax
-	pushl	%edi
-	pushl	%eax
-	pushl	$0
-	pushl	$7
-	pushl	-20(%ebp)
-	pushl	-16(%ebp)
-	call	_boxfill8
-	leal	-1(%ebx), %eax
-	pushl	%eax
-	leal	-26(%ebx), %eax
-	pushl	%edi
-	pushl	%eax
-	pushl	$0
-	pushl	$8
-	pushl	-20(%ebp)
-	pushl	-16(%ebp)
-	call	_boxfill8
-	leal	-24(%ebx), %eax
-	addl	$56, %esp
-	movl	%eax, -24(%ebp)
-	pushl	%eax
-	pushl	$59
-	pushl	%eax
-	pushl	$3
-	pushl	$7
-	pushl	-20(%ebp)
-	pushl	-16(%ebp)
-	call	_boxfill8
-	leal	-4(%ebx), %eax
-	pushl	%eax
-	movl	%eax, -28(%ebp)
-	pushl	$2
-	pushl	-24(%ebp)
-	pushl	$2
-	pushl	$7
-	pushl	-20(%ebp)
-	pushl	-16(%ebp)
-	call	_boxfill8
-	addl	$56, %esp
-	pushl	-28(%ebp)
-	pushl	$59
-	pushl	-28(%ebp)
-	pushl	$3
-	pushl	$15
-	pushl	-20(%ebp)
-	pushl	-16(%ebp)
-	call	_boxfill8
-	leal	-5(%ebx), %eax
-	pushl	%eax
-	leal	-23(%ebx), %eax
-	pushl	$59
-	movl	%eax, -32(%ebp)
-	pushl	%eax
-	subl	$3, %ebx
-	pushl	$59
-	pushl	$15
-	pushl	-20(%ebp)
-	pushl	-16(%ebp)
-	call	_boxfill8
-	addl	$56, %esp
-	pushl	%ebx
-	pushl	$59
-	pushl	%ebx
-	pushl	$2
-	pushl	$0
-	pushl	-20(%ebp)
-	pushl	-16(%ebp)
-	call	_boxfill8
-	pushl	%ebx
-	pushl	$60
-	pushl	-24(%ebp)
-	pushl	$60
-	pushl	$0
-	pushl	-20(%ebp)
-	pushl	-16(%ebp)
-	call	_boxfill8
-	movl	-20(%ebp), %edi
-	addl	$56, %esp
-	movl	-20(%ebp), %esi
-	pushl	-24(%ebp)
-	subl	$4, %esi
-	subl	$47, %edi
-	pushl	%esi
-	pushl	-24(%ebp)
-	pushl	%edi
-	pushl	$15
-	pushl	-20(%ebp)
-	pushl	-16(%ebp)
-	call	_boxfill8
-	pushl	-28(%ebp)
-	pushl	%edi
-	pushl	-32(%ebp)
-	pushl	%edi
-	pushl	$15
-	pushl	-20(%ebp)
-	pushl	-16(%ebp)
-	call	_boxfill8
-	addl	$56, %esp
-	pushl	%ebx
-	pushl	%esi
-	pushl	%ebx
-	pushl	%edi
-	pushl	$7
-	pushl	-20(%ebp)
-	pushl	-16(%ebp)
-	call	_boxfill8
-	movl	-20(%ebp), %eax
-	pushl	%ebx
-	subl	$3, %eax
-	pushl	%eax
-	pushl	-24(%ebp)
-	pushl	%eax
-	pushl	$7
-	pushl	-20(%ebp)
-	pushl	-16(%ebp)
-	call	_boxfill8
-	addl	$56, %esp
+	pushl	4088
+	call	_init_screen
+	addl	$12, %esp
 L2:
 	call	_io_hlt
 	jmp	L2
@@ -377,11 +235,176 @@ L26:
 	popl	%edi
 	popl	%ebp
 	ret
+	.balign 2
+.globl _init_screen
+	.def	_init_screen;	.scl	2;	.type	32;	.endef
+_init_screen:
+	pushl	%ebp
+	movl	%esp, %ebp
+	pushl	%edi
+	pushl	%esi
+	pushl	%ebx
+	subl	$12, %esp
+	movl	16(%ebp), %eax
+	movl	12(%ebp), %edi
+	subl	$29, %eax
+	decl	%edi
+	pushl	%eax
+	pushl	%edi
+	pushl	$0
+	pushl	$0
+	pushl	$14
+	pushl	12(%ebp)
+	pushl	8(%ebp)
+	call	_boxfill8
+	movl	16(%ebp), %eax
+	subl	$28, %eax
+	pushl	%eax
+	pushl	%edi
+	pushl	%eax
+	pushl	$0
+	pushl	$8
+	pushl	12(%ebp)
+	pushl	8(%ebp)
+	call	_boxfill8
+	movl	16(%ebp), %eax
+	addl	$56, %esp
+	subl	$27, %eax
+	pushl	%eax
+	pushl	%edi
+	pushl	%eax
+	pushl	$0
+	pushl	$7
+	pushl	12(%ebp)
+	pushl	8(%ebp)
+	call	_boxfill8
+	movl	16(%ebp), %eax
+	decl	%eax
+	pushl	%eax
+	movl	16(%ebp), %eax
+	pushl	%edi
+	subl	$26, %eax
+	pushl	%eax
+	pushl	$0
+	pushl	$8
+	pushl	12(%ebp)
+	pushl	8(%ebp)
+	call	_boxfill8
+	movl	16(%ebp), %esi
+	addl	$56, %esp
+	subl	$24, %esi
+	pushl	%esi
+	pushl	$59
+	pushl	%esi
+	pushl	$3
+	pushl	$7
+	pushl	12(%ebp)
+	pushl	8(%ebp)
+	call	_boxfill8
+	movl	16(%ebp), %eax
+	subl	$4, %eax
+	pushl	%eax
+	movl	%eax, -16(%ebp)
+	pushl	$2
+	pushl	%esi
+	pushl	$2
+	pushl	$7
+	pushl	12(%ebp)
+	pushl	8(%ebp)
+	call	_boxfill8
+	addl	$56, %esp
+	pushl	-16(%ebp)
+	pushl	$59
+	pushl	-16(%ebp)
+	pushl	$3
+	pushl	$15
+	pushl	12(%ebp)
+	pushl	8(%ebp)
+	call	_boxfill8
+	movl	16(%ebp), %eax
+	subl	$5, %eax
+	pushl	%eax
+	movl	16(%ebp), %eax
+	pushl	$59
+	subl	$23, %eax
+	pushl	%eax
+	movl	%eax, -20(%ebp)
+	pushl	$59
+	pushl	$15
+	pushl	12(%ebp)
+	pushl	8(%ebp)
+	call	_boxfill8
+	movl	16(%ebp), %eax
+	addl	$56, %esp
+	subl	$3, %eax
+	movl	%eax, -24(%ebp)
+	pushl	%eax
+	pushl	$59
+	pushl	%eax
+	pushl	$2
+	pushl	$0
+	pushl	12(%ebp)
+	pushl	8(%ebp)
+	call	_boxfill8
+	pushl	-24(%ebp)
+	pushl	$60
+	pushl	%esi
+	pushl	$60
+	pushl	$0
+	pushl	12(%ebp)
+	pushl	8(%ebp)
+	call	_boxfill8
+	movl	12(%ebp), %edi
+	addl	$56, %esp
+	movl	12(%ebp), %ebx
+	subl	$4, %ebx
+	subl	$47, %edi
+	pushl	%esi
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	pushl	$15
+	pushl	12(%ebp)
+	pushl	8(%ebp)
+	call	_boxfill8
+	pushl	-16(%ebp)
+	pushl	%edi
+	pushl	-20(%ebp)
+	pushl	%edi
+	pushl	$15
+	pushl	12(%ebp)
+	pushl	8(%ebp)
+	call	_boxfill8
+	addl	$56, %esp
+	pushl	-24(%ebp)
+	pushl	%ebx
+	pushl	-24(%ebp)
+	pushl	%edi
+	pushl	$7
+	pushl	12(%ebp)
+	pushl	8(%ebp)
+	call	_boxfill8
+	movl	12(%ebp), %eax
+	pushl	-24(%ebp)
+	subl	$3, %eax
+	pushl	%eax
+	pushl	%esi
+	pushl	%eax
+	pushl	$7
+	pushl	12(%ebp)
+	pushl	8(%ebp)
+	call	_boxfill8
+	leal	-12(%ebp), %esp
+	popl	%ebx
+	popl	%esi
+	popl	%edi
+	popl	%ebp
+	ret
 	.def	_io_store_eflags;	.scl	2;	.type	32;	.endef
 	.def	_io_out8;	.scl	2;	.type	32;	.endef
 	.def	_io_cli;	.scl	2;	.type	32;	.endef
 	.def	_io_load_eflags;	.scl	2;	.type	32;	.endef
 	.def	_set_palette;	.scl	2;	.type	32;	.endef
 	.def	_io_hlt;	.scl	2;	.type	32;	.endef
-	.def	_boxfill8;	.scl	2;	.type	32;	.endef
+	.def	_init_screen;	.scl	2;	.type	32;	.endef
 	.def	_init_palette;	.scl	2;	.type	32;	.endef
