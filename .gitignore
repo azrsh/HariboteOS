@@ -6,3 +6,10 @@ bootpack.lst
 bootpack.map
 bootpack.obj
 haribote.sys
+asmhead.bin
+asmhead.lst
+bootpack.nasm
+ipl10.bin
+ipl10.lst
+naskfunc.lst
+naskfunc.obj
