@@ -7,6 +7,7 @@ void io_store_eflags(int eflags);
 void init_palette(void);
 void set_palette(int start, int end, unsigned char *rgb);
 void boxfill8(unsigned char *vram, int x_size, unsigned char color, int x0, int y0, int x1, int y1);
+void init_screen(char *vram, int x_size, int y_size);
 
 const unsigned char Color8_000000 = 0;
 const unsigned char Color8_FF0000 = 1;
@@ -43,26 +44,7 @@ void HariMain(void)
     x_size = (*boot_info).screenX;
     y_size = (*boot_info).screenY;
     vram = (*boot_info).vram;
-
-    //画面の下絵(？)
-    boxfill8(vram, x_size, Color8_008484, 0, 0, x_size - 1, y_size - 29);           //デスクトップの背景
-    boxfill8(vram, x_size, Color8_C6C6C6, 0, y_size - 28, x_size - 1, y_size - 28); //タスクバーとの境界の灰色線
-    boxfill8(vram, x_size, Color8_FFFFFF, 0, y_size - 27, x_size - 1, y_size - 27); //タスクバーとの境界の白線
-    boxfill8(vram, x_size, Color8_C6C6C6, 0, y_size - 26, x_size - 1, y_size - 1);  //タスクバーとの境界線とタスクバーの塗りつぶしの灰色
-
-    //タスクバー右側のアイコンの境界線
-    boxfill8(vram, x_size, Color8_FFFFFF, 3, y_size - 24, 59, y_size - 24);
-    boxfill8(vram, x_size, Color8_FFFFFF, 2, y_size - 24, 2, y_size - 4);
-    boxfill8(vram, x_size, Color8_848484, 3, y_size - 4, 59, y_size - 4);
-    boxfill8(vram, x_size, Color8_848484, 59, y_size - 23, 59, y_size - 5);
-    boxfill8(vram, x_size, Color8_000000, 2, y_size - 3, 59, y_size - 3);
-    boxfill8(vram, x_size, Color8_000000, 60, y_size - 24, 60, y_size - 3);
-
-    //タスクバー左側のアイコンの境界線
-    boxfill8(vram, x_size, Color8_848484, x_size - 47, y_size - 24, x_size - 4, y_size - 24);
-    boxfill8(vram, x_size, Color8_848484, x_size - 47, y_size - 23, x_size - 47, y_size - 4);
-    boxfill8(vram, x_size, Color8_FFFFFF, x_size - 47, y_size - 3, x_size - 4, y_size - 3);
-    boxfill8(vram, x_size, Color8_FFFFFF, x_size - 3, y_size - 24, x_size - 3, y_size - 3);
+    init_screen(boot_info->vram, boot_info->screenX, boot_info->screenY);
 
     for (;;)
     {
@@ -123,4 +105,27 @@ void boxfill8(unsigned char *vram, int x_size, unsigned char color, int x0, int 
             vram[y * x_size + x] = color;
     }
     return;
+}
+
+void init_screen(char *vram, int x_size, int y_size)
+{
+    //画面の下絵(？)
+    boxfill8(vram, x_size, Color8_008484, 0, 0, x_size - 1, y_size - 29);           //デスクトップの背景
+    boxfill8(vram, x_size, Color8_C6C6C6, 0, y_size - 28, x_size - 1, y_size - 28); //タスクバーとの境界の灰色線
+    boxfill8(vram, x_size, Color8_FFFFFF, 0, y_size - 27, x_size - 1, y_size - 27); //タスクバーとの境界の白線
+    boxfill8(vram, x_size, Color8_C6C6C6, 0, y_size - 26, x_size - 1, y_size - 1);  //タスクバーとの境界線とタスクバーの塗りつぶしの灰色
+
+    //タスクバー右側のアイコンの境界線
+    boxfill8(vram, x_size, Color8_FFFFFF, 3, y_size - 24, 59, y_size - 24);
+    boxfill8(vram, x_size, Color8_FFFFFF, 2, y_size - 24, 2, y_size - 4);
+    boxfill8(vram, x_size, Color8_848484, 3, y_size - 4, 59, y_size - 4);
+    boxfill8(vram, x_size, Color8_848484, 59, y_size - 23, 59, y_size - 5);
+    boxfill8(vram, x_size, Color8_000000, 2, y_size - 3, 59, y_size - 3);
+    boxfill8(vram, x_size, Color8_000000, 60, y_size - 24, 60, y_size - 3);
+
+    //タスクバー左側のアイコンの境界線
+    boxfill8(vram, x_size, Color8_848484, x_size - 47, y_size - 24, x_size - 4, y_size - 24);
+    boxfill8(vram, x_size, Color8_848484, x_size - 47, y_size - 23, x_size - 47, y_size - 4);
+    boxfill8(vram, x_size, Color8_FFFFFF, x_size - 47, y_size - 3, x_size - 4, y_size - 3);
+    boxfill8(vram, x_size, Color8_FFFFFF, x_size - 3, y_size - 24, x_size - 3, y_size - 3);
 }
