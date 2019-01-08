@@ -25,20 +25,24 @@ const unsigned char Color8_840084 = 13;
 const unsigned char Color8_008484 = 14;
 const unsigned char Color8_848484 = 15;
 
+struct BOOTINFO
+{
+    char cyls, leds, vmode, reserve;
+    short screenX, screenY;
+    char *vram;
+};
+
 void HariMain(void)
 {
     char *vram;
     int x_size, y_size;
-    short *bootinfo_screenX, *bootinfo_screenY;
-    int *bootinfo_vram;
+    struct BOOTINFO *boot_info;
 
     init_palette();
-    bootinfo_screenX = (short *)0x0ff4; //asmhead.nasmのEQUが並んでる当たりに対応している
-    bootinfo_screenY = (short *)0x0ff6;
-    bootinfo_vram = (int *)0x0ff8;
-    x_size = *bootinfo_screenX;
-    y_size = *bootinfo_screenY;
-    vram = (char *)*bootinfo_vram;
+    boot_info = (struct BOOTINFO *)0xff0; //boot infoの開始アドレス
+    x_size = (*boot_info).screenX;
+    y_size = (*boot_info).screenY;
+    vram = (*boot_info).vram;
 
     //画面の下絵(？)
     boxfill8(vram, x_size, Color8_008484, 0, 0, x_size - 1, y_size - 29);           //デスクトップの背景
