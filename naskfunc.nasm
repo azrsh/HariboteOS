@@ -8,6 +8,7 @@
 
 ; オブジェクトファイルのための情報
 [FILE "naskfunc.nasm"]              ; ソースファイル名の情報
+
         GLOBAL  _io_hlt, _io_cli, _io_sti, _io_stihlt ; このプログラムに含まれる関数名
         GLOBAL  _io_in8, _io_in16, _io_in32
         GLOBAL  _io_out8, _io_out16, _io_out32

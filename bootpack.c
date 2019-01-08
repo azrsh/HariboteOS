@@ -1,4 +1,3 @@
-
 void io_hlt(void);
 void io_cli(void);
 void io_out8(int port, int data);
@@ -7,17 +6,52 @@ void io_store_eflags(int eflags);
 
 void init_palette(void);
 void set_palette(int start, int end, unsigned char *rgb);
+void boxfill8(unsigned char *vram, int x_size, unsigned char color, int x0, int y0, int x1, int y1);
+
+#define COL8_000000 0
+#define COL8_FF0000 1
+#define COL8_00FF00 2
+#define COL8_FFFF00 3
+#define COL8_0000FF 4
+#define COL8_FF00FF 5
+#define COL8_00FFFF 6
+#define COL8_FFFFFF 7
+#define COL8_C6C6C6 8
+#define COL8_840000 9
+#define COL8_008400 10
+#define COL8_848400 11
+#define COL8_000084 12
+#define COL8_840084 13
+#define COL8_008484 14
+#define COL8_848484 15
+/*const unsigned char Color8_000000 = 0;
+const unsigned char Color8_FF0000 = 1;
+const unsigned char Color8_00FF00 = 2;
+const unsigned char Color8_FFFF00 = 3;
+const unsigned char Color8_0000FF = 4;
+const unsigned char Color8_FF00FF = 5;
+const unsigned char Color8_00FFFF = 6;
+const unsigned char Color8_FFFFFF = 7;
+const unsigned char Color8_C6C6C6 = 8;
+const unsigned char Color8_840000 = 9;
+const unsigned char Color8_008400 = 10;
+const unsigned char Color8_848400 = 11;
+const unsigned char Color8_000084 = 12;
+const unsigned char Color8_840084 = 13;
+const unsigned char Color8_008484 = 14;
+const unsigned char Color8_848484 = 15;*/
 
 void HariMain(void)
 {
-    int i; //現環境では32bit
     char *p;
 
+    init_palette();
+
     p = (char *)0xa0000;
-    for (i = 0x0000; i <= 0xffff; i++)
-    {
-        p[i] = i & 0x0f;
-    }
+
+    boxfill8(p, 320, COL8_FF0000, 20, 20, 120, 120);
+    boxfill8(p, 320, COL8_00FF00, 70, 50, 170, 150);
+    boxfill8(p, 320, COL8_0000FF, 120, 80, 220, 180);
 
     for (;;)
         io_hlt();
@@ -44,9 +78,9 @@ void init_palette(void)
             0x00, 0x84, 0x84, //14:暗い水色
             0x84, 0x84, 0x84, //15:暗い灰色
         };
-    /*static char命令は、出たにしか使えないがDB命令相当*/
+    /*static char命令は、データにしか使えないがDB命令相当*/
 
-    set_palette(0, 15, &table_rgb);
+    set_palette(0, 15, table_rgb);
     return;
 }
 
@@ -64,5 +98,14 @@ void set_palette(int start, int end, unsigned char *rgb)
         rgb += 3;
     }
     io_store_eflags(eflags); //元の割り込みフラグの値に戻す
+    return;
+}
+
+void boxfill8(unsigned char *vram, int x_size, unsigned char color, int x0, int y0, int x1, int y1)
+{
+    int x, y;
+    for (y = y0; y <= y1; y++)
+        for (x = x0; x <= x1; x++)
+            vram[y * x_size + x] = color;
     return;
 }
