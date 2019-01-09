@@ -35,15 +35,9 @@ struct BOOTINFO
 
 void HariMain(void)
 {
-    char *vram;
-    int x_size, y_size;
-    struct BOOTINFO *boot_info;
+    struct BOOTINFO *boot_info = (struct BOOTINFO *)0xff0; //boot infoの開始アドレス
 
     init_palette();
-    boot_info = (struct BOOTINFO *)0xff0; //boot infoの開始アドレス
-    x_size = (*boot_info).screenX;
-    y_size = (*boot_info).screenY;
-    vram = (*boot_info).vram;
     init_screen(boot_info->vram, boot_info->screenX, boot_info->screenY);
 
     for (;;)
