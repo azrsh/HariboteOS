@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 void io_hlt(void);
 void io_cli(void);
 void io_out8(int port, int data);
@@ -38,12 +40,16 @@ struct BOOTINFO
 void HariMain(void)
 {
     struct BOOTINFO *boot_info = (struct BOOTINFO *)0xff0; //boot infoの開始アドレス
+    char s[40];
 
     init_palette();
     init_screen(boot_info->vram, boot_info->screenX, boot_info->screenY);
     putfonts8_asc(boot_info->vram, boot_info->screenX, 8, 8, Color8_FFFFFF, "ABCD 1234");
     putfonts8_asc(boot_info->vram, boot_info->screenX, 31, 31, Color8_000000, "Haribote OS.");
     putfonts8_asc(boot_info->vram, boot_info->screenX, 30, 30, Color8_FFFFFF, "Haribote OS.");
+
+    sprintf(s, "screen_width = %d", boot_info->screenX);
+    putfonts8_asc(boot_info->vram, boot_info->screenX, 16, 64, Color8_FFFFFF, s);
 
     for (;;)
     {
