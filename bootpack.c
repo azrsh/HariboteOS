@@ -10,8 +10,10 @@ void init_palette(void);
 void set_palette(int start, int end, unsigned char *rgb);
 void boxfill8(unsigned char *vram, int x_size, unsigned char color, int x0, int y0, int x1, int y1);
 void init_screen(char *vram, int x_size, int y_size);
-void putfont8(unsigned char *vram, int x_size, int x, int y, char c, char *font);
 void putfonts8_asc(unsigned char *vram, int x_size, int x, int y, char color, unsigned char *s);
+void putfont8(unsigned char *vram, int x_size, int x, int y, char c, char *font);
+void init_mouse_cursor8(char *mouse_buffer, char background_color);
+void putblock8_8(char *vram, int vxsize, int pxsize, int pysize, int px0, int py0, char *buffer, int bxsize);
 
 const unsigned char Color8_000000 = 0;
 const unsigned char Color8_FF0000 = 1;
@@ -40,16 +42,19 @@ struct BOOTINFO
 void HariMain(void)
 {
     struct BOOTINFO *boot_info = (struct BOOTINFO *)0xff0; //boot infoの開始アドレス
-    char s[40];
+    char s[40], mouse_cursor[256];
+    int mouse_x, mouse_y;
 
     init_palette();
     init_screen(boot_info->vram, boot_info->screenX, boot_info->screenY);
-    putfonts8_asc(boot_info->vram, boot_info->screenX, 8, 8, Color8_FFFFFF, "ABCD 1234");
-    putfonts8_asc(boot_info->vram, boot_info->screenX, 31, 31, Color8_000000, "Haribote OS.");
-    putfonts8_asc(boot_info->vram, boot_info->screenX, 30, 30, Color8_FFFFFF, "Haribote OS.");
 
-    sprintf(s, "screen_width = %d", boot_info->screenX);
-    putfonts8_asc(boot_info->vram, boot_info->screenX, 16, 64, Color8_FFFFFF, s);
+    mouse_x = (boot_info->screenX - 16) / 2; //画面中央に配置
+    mouse_y = (boot_info->screenY - 28 - 16) / 2;
+    init_mouse_cursor8(mouse_cursor, Color8_008484);
+    putblock8_8(boot_info->vram, boot_info->screenX, 16, 16, mouse_x, mouse_y, mouse_cursor, 16);
+
+    sprintf(s, "(%d, %d)", mouse_x, mouse_y);
+    putfonts8_asc(boot_info->vram, boot_info->screenX, 0, 0, Color8_FFFFFF, s);
 
     for (;;)
     {
@@ -170,6 +175,55 @@ void putfonts8_asc(unsigned char *vram, int x_size, int x, int y, char color, un
     {
         putfont8(vram, x_size, x, y, color, hankaku + *s * 16);
         x += 8;
+    }
+    return;
+}
+
+void init_mouse_cursor8(char *mouse_buffer, char background_color)
+{
+    //カーソルの16x16の画像(？)データ
+    static char cursor[16][16] =
+        {
+            "**************..",
+            "*OOOOOOOOOOO*...",
+            "*OOOOOOOOOO*....",
+            "*OOOOOOOOO*.....",
+            "*OOOOOOOO*......",
+            "*OOOOOOO*.......",
+            "*OOOOOOO*.......",
+            "*OOOOOOOO*......",
+            "*OOOO**OOO*.....",
+            "*OOO*..*OOO*....",
+            "*OO*....*OOO*...",
+            "*O*......*OOO*..",
+            "**........*OOO*.",
+            "*..........*OOO*",
+            "............*OO*",
+            ".............***"};
+    int x, y;
+
+    for (y = 0; y < 16; y++)
+    {
+        for (x = 0; x < 16; x++)
+        {
+            if (cursor[y][x] == '*')
+                mouse_buffer[y * 16 + x] = Color8_000000;
+            if (cursor[y][x] == 'O')
+                mouse_buffer[y * 16 + x] = Color8_FFFFFF;
+            if (cursor[y][x] == '.')
+                mouse_buffer[y * 16 + x] = background_color;
+        }
+    }
+    return;
+}
+
+void putblock8_8(char *vram, int vxsize, int pxsize, int pysize, int px0, int py0, char *buffer, int bxsize)
+{
+    int x, y;
+    for (y = 0; y < pysize; y++)
+    {
+        for (x = 0; x < pxsize; x++)
+            vram[(py0 + y) * vxsize + (px0 + x)] = buffer[y * bxsize + x];
     }
     return;
 }
