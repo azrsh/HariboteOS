@@ -9,6 +9,7 @@ void set_palette(int start, int end, unsigned char *rgb);
 void boxfill8(unsigned char *vram, int x_size, unsigned char color, int x0, int y0, int x1, int y1);
 void init_screen(char *vram, int x_size, int y_size);
 void putfont8(unsigned char *vram, int x_size, int x, int y, char c, char *font);
+void putfonts8_asc(unsigned char *vram, int x_size, int x, int y, char color, unsigned char *s);
 
 const unsigned char Color8_000000 = 0;
 const unsigned char Color8_FF0000 = 1;
@@ -37,16 +38,12 @@ struct BOOTINFO
 void HariMain(void)
 {
     struct BOOTINFO *boot_info = (struct BOOTINFO *)0xff0; //boot infoの開始アドレス
-    extern char hankaku[4096];
 
     init_palette();
     init_screen(boot_info->vram, boot_info->screenX, boot_info->screenY);
-    putfont8(boot_info->vram, boot_info->screenX, 8, 8, Color8_FFFFFF, hankaku + 'A' * 16);
-    putfont8(boot_info->vram, boot_info->screenX, 16, 8, Color8_FFFFFF, hankaku + 'B' * 16);
-    putfont8(boot_info->vram, boot_info->screenX, 24, 8, Color8_FFFFFF, hankaku + 'C' * 16);
-    putfont8(boot_info->vram, boot_info->screenX, 40, 8, Color8_FFFFFF, hankaku + '1' * 16);
-    putfont8(boot_info->vram, boot_info->screenX, 48, 8, Color8_FFFFFF, hankaku + '2' * 16);
-    putfont8(boot_info->vram, boot_info->screenX, 56, 8, Color8_FFFFFF, hankaku + '3' * 16);
+    putfonts8_asc(boot_info->vram, boot_info->screenX, 8, 8, Color8_FFFFFF, "ABCD 1234");
+    putfonts8_asc(boot_info->vram, boot_info->screenX, 31, 31, Color8_000000, "Haribote OS.");
+    putfonts8_asc(boot_info->vram, boot_info->screenX, 30, 30, Color8_FFFFFF, "Haribote OS.");
 
     for (;;)
     {
@@ -156,6 +153,17 @@ void putfont8(unsigned char *vram, int x_size, int x, int y, char c, char *font)
             p[6] = c;
         if ((d & 0x01) != 0)
             p[7] = c;
+    }
+    return;
+}
+
+void putfonts8_asc(unsigned char *vram, int x_size, int x, int y, char color, unsigned char *s)
+{
+    extern char hankaku[4096];
+    for (; *s != 0x00; s++)
+    {
+        putfont8(vram, x_size, x, y, color, hankaku + *s * 16);
+        x += 8;
     }
     return;
 }
