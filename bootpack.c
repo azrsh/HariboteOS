@@ -37,14 +37,16 @@ struct BOOTINFO
 void HariMain(void)
 {
     struct BOOTINFO *boot_info = (struct BOOTINFO *)0xff0; //boot infoの開始アドレス
-    static char font_A[16] =
-        {
-            0x00, 0x18, 0x18, 0x18, 0x18, 0x24, 0x24, 0x24,
-            0x24, 0x7e, 0x42, 0x42, 0x42, 0xe7, 0x00, 0x00};
+    extern char hankaku[4096];
 
     init_palette();
     init_screen(boot_info->vram, boot_info->screenX, boot_info->screenY);
-    putfont8(boot_info->vram, boot_info->screenX, 10, 10, Color8_FFFFFF, font_A);
+    putfont8(boot_info->vram, boot_info->screenX, 8, 8, Color8_FFFFFF, hankaku + 'A' * 16);
+    putfont8(boot_info->vram, boot_info->screenX, 16, 8, Color8_FFFFFF, hankaku + 'B' * 16);
+    putfont8(boot_info->vram, boot_info->screenX, 24, 8, Color8_FFFFFF, hankaku + 'C' * 16);
+    putfont8(boot_info->vram, boot_info->screenX, 40, 8, Color8_FFFFFF, hankaku + '1' * 16);
+    putfont8(boot_info->vram, boot_info->screenX, 48, 8, Color8_FFFFFF, hankaku + '2' * 16);
+    putfont8(boot_info->vram, boot_info->screenX, 56, 8, Color8_FFFFFF, hankaku + '3' * 16);
 
     for (;;)
     {
