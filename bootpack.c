@@ -8,6 +8,7 @@ void init_palette(void);
 void set_palette(int start, int end, unsigned char *rgb);
 void boxfill8(unsigned char *vram, int x_size, unsigned char color, int x0, int y0, int x1, int y1);
 void init_screen(char *vram, int x_size, int y_size);
+void putfont8(unsigned char *vram, int x_size, int x, int y, char c, char *font);
 
 const unsigned char Color8_000000 = 0;
 const unsigned char Color8_FF0000 = 1;
@@ -36,9 +37,14 @@ struct BOOTINFO
 void HariMain(void)
 {
     struct BOOTINFO *boot_info = (struct BOOTINFO *)0xff0; //boot infoの開始アドレス
+    static char font_A[16] =
+        {
+            0x00, 0x18, 0x18, 0x18, 0x18, 0x24, 0x24, 0x24,
+            0x24, 0x7e, 0x42, 0x42, 0x42, 0xe7, 0x00, 0x00};
 
     init_palette();
     init_screen(boot_info->vram, boot_info->screenX, boot_info->screenY);
+    putfont8(boot_info->vram, boot_info->screenX, 10, 10, Color8_FFFFFF, font_A);
 
     for (;;)
     {
@@ -122,4 +128,32 @@ void init_screen(char *vram, int x_size, int y_size)
     boxfill8(vram, x_size, Color8_848484, x_size - 47, y_size - 23, x_size - 47, y_size - 4);
     boxfill8(vram, x_size, Color8_FFFFFF, x_size - 47, y_size - 3, x_size - 4, y_size - 3);
     boxfill8(vram, x_size, Color8_FFFFFF, x_size - 3, y_size - 24, x_size - 3, y_size - 3);
+}
+
+void putfont8(unsigned char *vram, int x_size, int x, int y, char c, char *font)
+{
+    int i;
+    char *p, d;
+    for (i = 0; i < 16; i++)
+    {
+        p = vram + (y + i) * x_size + x;
+        d = font[i];
+        if ((d & 0x80) != 0)
+            p[0] = c;
+        if ((d & 0x40) != 0)
+            p[1] = c;
+        if ((d & 0x20) != 0)
+            p[2] = c;
+        if ((d & 0x10) != 0)
+            p[3] = c;
+        if ((d & 0x08) != 0)
+            p[4] = c;
+        if ((d & 0x04) != 0)
+            p[5] = c;
+        if ((d & 0x02) != 0)
+            p[6] = c;
+        if ((d & 0x01) != 0)
+            p[7] = c;
+    }
+    return;
 }
