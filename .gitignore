@@ -15,3 +15,11 @@ naskfunc.lst
 naskfunc.obj
 hankaku.obj
 hankaku.bin
+dsctbl.gas
+dsctbl.lst
+dsctbl.nasm
+dsctbl.obj
+graphic.gas
+graphic.lst
+graphic.nasm
+graphic.obj
