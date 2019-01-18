@@ -27,35 +27,15 @@ ipl10.bin : ipl10.nasm Makefile
 asmhead.bin : asmhead.nasm Makefile
 	$(NASK) asmhead.nasm asmhead.bin asmhead.lst
 
-#bootpack.c to bootpack.obj
-bootpack.gas : bootpack.c Makefile
-	$(CC1) -o bootpack.gas bootpack.c
+#.c to .obj
+%.gas : %.c Makefile
+	$(CC1) -o $*.gas $*.c
 
-bootpack.nasm : bootpack.gas Makefile
-	$(GAS2NASK) bootpack.gas bootpack.nasm
+%.nasm : %.gas Makefile
+	$(GAS2NASK) $*.gas $*.nasm
 
-bootpack.obj : bootpack.nasm Makefile
-	$(NASK) bootpack.nasm bootpack.obj bootpack.lst
-
-#graphic.c to graphic.obj
-graphic.gas : graphic.c Makefile
-	$(CC1) -o graphic.gas graphic.c
-
-graphic.nasm : graphic.gas Makefile
-	$(GAS2NASK) graphic.gas graphic.nasm
-
-graphic.obj : graphic.nasm Makefile
-	$(NASK) graphic.nasm graphic.obj graphic.lst
-
-#dsctbl.c to dsctbl.obj
-dsctbl.gas : dsctbl.c Makefile
-	$(CC1) -o dsctbl.gas dsctbl.c
-
-dsctbl.nasm : dsctbl.gas Makefile
-	$(GAS2NASK) dsctbl.gas dsctbl.nasm
-
-dsctbl.obj : dsctbl.nasm Makefile
-	$(NASK) dsctbl.nasm dsctbl.obj dsctbl.lst
+%.obj : %.nasm Makefile
+	$(NASK) $*.nasm $*.obj $*.lst
 
 #naskfunc.nasm to naskfunc.obj
 naskfunc.obj : naskfunc.nasm Makefile
