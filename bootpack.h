@@ -5,6 +5,7 @@ struct BOOTINFO
     short screenX, screenY;
     char *vram;
 };
+#define ADRESS_BOOTINFO 0x00000ff0
 
 //naskfunc.nasm
 void io_hlt(void);
@@ -58,3 +59,11 @@ struct GATE_DESCRIPTOR
 void init_gdtidt(void);
 void set_segment_descriptor(struct SEGMENT_DESCRIPTOR *segmentDescriptor, unsigned int limit, int base, int access_right);
 void set_gate_descriptor(struct GATE_DESCRIPTOR *gateDescriptor, int offset, int selector, int access_right);
+#define ADRESS_IDT 0x0026f800
+#define LIMIT_IDT 0x000007ff
+#define ADRESS_GDT 0x00270000
+#define LIMIT_GDT 0x0000ffff
+#define ADRESS_BOTPACK 0x00280000
+#define LIMIT_BOTPACK 0x0007ffff
+#define AR_DATA32_RW 0x4092
+#define AR_CODE32_ER 0x409a

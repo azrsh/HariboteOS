@@ -4,21 +4,21 @@
 
 void init_gdtidt(void)
 {
-    struct SEGMENT_DESCRIPTOR *gdt = (struct SEGMENT_DESCRIPTOR *)0x00270000;
-    struct GATE_DESCRIPTOR *idt = (struct GATE_DESCRIPTOR *)0x0026f800;
+    struct SEGMENT_DESCRIPTOR *gdt = (struct SEGMENT_DESCRIPTOR *)ADRESS_GDT;
+    struct GATE_DESCRIPTOR *idt = (struct GATE_DESCRIPTOR *)ADRESS_IDT;
     int i = 0;
 
     //GDTの初期化
     for (i = 0; i < 8192; i++)
         set_segment_descriptor(gdt + i, 0, 0, 0);
-    set_segment_descriptor(gdt + 1, 0xffffffff, 0x00000000, 0x4092);
-    set_segment_descriptor(gdt + 2, 0x0007ffff, 0x00280000, 0x409a);
-    load_gdtr(0xffff, 0x00270000);
+    set_segment_descriptor(gdt + 1, 0xffffffff, 0x00000000, AR_DATA32_RW);
+    set_segment_descriptor(gdt + 2, LIMIT_BOTPACK, ADRESS_BOTPACK, AR_CODE32_ER);
+    load_gdtr(LIMIT_GDT, ADRESS_GDT);
 
     //IDTの初期化
     for (i = 0; i < 256; i++)
         set_gate_descriptor(idt + i, 0, 0, 0);
-    load_idtr(0x7ff, 0x0026f800);
+    load_idtr(LIMIT_IDT, ADRESS_IDT);
 
     return;
 }

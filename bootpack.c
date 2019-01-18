@@ -3,7 +3,7 @@
 
 void HariMain(void)
 {
-    struct BOOTINFO *boot_info = (struct BOOTINFO *)0xff0; //boot infoの開始アドレス
+    struct BOOTINFO *boot_info = (struct BOOTINFO *)ADRESS_BOOTINFO; //boot infoの開始アドレス
     char s[40], mouse_cursor[256];
     int mouse_x, mouse_y;
 
