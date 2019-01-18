@@ -1,24 +1,6 @@
 //GDT,IDTなどのDescriptorTable関連の処理
 
-struct SEGMENT_DESCRIPTOR
-{
-    short limit_low, base_low;
-    char base_mid, access_right;
-    char limit_high, base_high;
-};
-
-struct GATE_DESCRIPTOR
-{
-    short offset_low, selector;
-    char dw_count, access_right;
-    short offset_high;
-};
-
-void init_gdtidt(void);
-void set_segment_descriptor(struct SEGMENT_DESCRIPTOR *segmentDescriptor, unsigned int limit, int base, int access_right);
-void set_gate_descriptor(struct GATE_DESCRIPTOR *gateDescriptor, int offset, int selector, int access_right);
-void load_gdtr(int limit, int adress);
-void load_idtr(int limit, int adress);
+#include "bootpack.h"
 
 void init_gdtidt(void)
 {

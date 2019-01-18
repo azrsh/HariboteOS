@@ -1,37 +1,6 @@
 //グラフィック関連の処理
 
-void io_hlt(void);
-void io_cli(void);
-void io_out8(int port, int data);
-int io_load_eflags(void);
-void io_store_eflags(int eflags);
-
-void init_palette(void);
-void set_palette(int start, int end, unsigned char *rgb);
-void boxfill8(unsigned char *vram, int x_size, unsigned char color, int x0, int y0, int x1, int y1);
-void init_screen(char *vram, int x_size, int y_size);
-void putfonts8_asc(unsigned char *vram, int x_size, int x, int y, char color, unsigned char *s);
-void putfont8(unsigned char *vram, int x_size, int x, int y, char c, char *font);
-void init_mouse_cursor8(char *mouse_buffer, char background_color);
-void putblock8_8(char *vram, int vxsize, int pxsize, int pysize, int px0, int py0, char *buffer, int bxsize);
-
-//constに変更してbootpack.cから定義を削除したい
-#define COLOR8_000000 0
-#define COLOR8_FF0000 1
-#define COLOR8_00FF00 2
-#define COLOR8_FFFF00 3
-#define COLOR8_0000FF 4
-#define COLOR8_FF00FF 5
-#define COLOR8_00FFFF 6
-#define COLOR8_FFFFFF 7
-#define COLOR8_C6C6C6 8
-#define COLOR8_840000 9
-#define COLOR8_008400 10
-#define COLOR8_848400 11
-#define COLOR8_000084 12
-#define COLOR8_840084 13
-#define COLOR8_008484 14
-#define COLOR8_848484 15
+#include "bootpack.h"
 
 void init_palette(void)
 {
