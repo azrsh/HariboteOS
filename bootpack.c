@@ -259,7 +259,7 @@ void init_gdtidt(void)
         set_segment_descriptor(gdt + i, 0, 0, 0);
     set_segment_descriptor(gdt + 1, 0xffffffff, 0x00000000, 0x4092);
     set_segment_descriptor(gdt + 2, 0x0007ffff, 0x00280000, 0x409a);
-    load_gdtr(0xffff, 0x0026f800);
+    load_gdtr(0xffff, 0x00270000);
 
     //IDTの初期化
     for (i = 0; i < 256; i++)
