@@ -9,6 +9,7 @@ void HariMain(void)
 
     init_palette();
     init_screen(bootInfo->vram, bootInfo->screenX, bootInfo->screenY);
+    init_pic();
 
     mouseX = (bootInfo->screenX - 16) / 2; //画面中央に配置
     mouseY = (bootInfo->screenY - 28 - 16) / 2;

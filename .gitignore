@@ -23,3 +23,5 @@ graphic.gas
 graphic.lst
 graphic.nasm
 graphic.obj
+int.lst
+int.obj
