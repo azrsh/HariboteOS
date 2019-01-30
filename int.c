@@ -1,5 +1,6 @@
 //割り込み関連処理
 
+#include <stdio.h>
 #include "bootpack.h"
 
 //PICの初期化
@@ -28,12 +29,14 @@ void init_pic(void)
 void inthandler21(int *esp)
 {
     struct BOOTINFO *bootInfo = (struct BOOTINFO *)ADRESS_BOOTINFO;
-    boxfill8(bootInfo->vram, bootInfo->screenX, COLOR8_000000, 0, 0, 32 * 8 -1, 15);
-    putfonts8_asc(bootInfo->vram, bootInfo->screenX, 0, 0, COLOR8_FFFFFF, "INT 21 (IRQ-1) : PS/2 keyboard");
-    for(;;)
-    {
-        io_hlt();
-    }
+    unsigned char data, s[4];
+    io_out8(PIC0_OCW2, 0x61);   //PICに割り込みを受け取ったことを通知(IRQ1=0x61,IRQ3=0x63)
+    data = io_in8(PORT_KEYAT);
+
+    sprintf(s, "%02X", data);
+    boxfill8(bootInfo->vram, bootInfo->screenX, COLOR8_008484, 0, 16, 15, 31);
+    putfonts8_asc(bootInfo->vram, bootInfo->screenX, 0, 16, COLOR8_FFFFFF, s);
+    return;
 }
 
 //PS/2マウスからの割り込み
