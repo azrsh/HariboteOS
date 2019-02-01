@@ -34,10 +34,10 @@ void inthandler21(int *esp)
     io_out8(PIC0_OCW2, 0x61);   //PICに割り込みを受け取ったことを通知(IRQ1=0x61,IRQ3=0x63)
     data = io_in8(PORT_KEYAT);
 
-    if(keyBuffer.flag == 0)
+    if(keyBuffer.next < 32)
     {
-        keyBuffer.data = data;
-        keyBuffer.flag = 1;
+        keyBuffer.data[keyBuffer.next] = data;
+        keyBuffer.next++;
     }
     return;
 }

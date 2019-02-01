@@ -7,7 +7,7 @@ void HariMain(void)
 {
     struct BOOTINFO *bootInfo = (struct BOOTINFO *)ADRESS_BOOTINFO; //boot infoの開始アドレス
     char s[40], mouseCursor[256];
-    int mouseX, mouseY, i;
+    int mouseX, mouseY, i, j;
 
     init_gdtidt();
     init_pic();
@@ -29,14 +29,18 @@ void HariMain(void)
     for (;;)
     {
         io_cli();
-        if(keyBuffer.flag == 0)
+        if(keyBuffer.next == 0)
         {
             io_stihlt();
         }
         else
         {
-            i = keyBuffer.data;
-            keyBuffer.flag = 0;
+            i = keyBuffer.data[0];
+            keyBuffer.next--;
+            for(j = 0;j < keyBuffer.next;j++)
+            {
+                keyBuffer.data[j] = keyBuffer.data[j + 1];
+            }
             io_sti();
             sprintf(s, "%02X", i);
             boxfill8(bootInfo->vram, bootInfo->screenX, COLOR8_008484, 0, 16, 15, 31);
