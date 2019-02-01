@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include "bootpack.h"
 
+#define PORT_KEYAT 0x0060
+
 //PICの初期化
 void init_pic(void)
 {
@@ -25,7 +27,7 @@ void init_pic(void)
     return;
 }
 
-struct KEYBUFFER keyBuffer;
+struct FIFO8 keyFifo;
 
 //PS/2キーボードからの割り込み
 void inthandler21(int *esp)
@@ -33,17 +35,7 @@ void inthandler21(int *esp)
     unsigned char data;
     io_out8(PIC0_OCW2, 0x61);   //PICに割り込みを受け取ったことを通知(IRQ1=0x61,IRQ3=0x63)
     data = io_in8(PORT_KEYAT);
-
-    if(keyBuffer.length < 32)
-    {
-        keyBuffer.data[keyBuffer.nextWrite] = data;
-        keyBuffer.length++;
-        keyBuffer.nextWrite++;
-        if(keyBuffer.nextWrite == 32)
-        {
-            keyBuffer.nextWrite = 0;
-        }
-    }
+    fifo8_put(&keyFifo, data);
     return;
 }
 

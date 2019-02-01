@@ -22,6 +22,17 @@ void asm_inthandler21(void);
 void asm_inthandler27(void);
 void asm_inthandler2c(void);
 
+//fifo.c
+struct FIFO8
+{
+    unsigned char *buffer;
+    int nextRead, nextWrite, size, free, flags;
+};
+void fifo8_init(struct FIFO8 *fifo, int size, unsigned char *buffer);
+int fifo8_put(struct FIFO8 *fifo, unsigned char data);
+int fifo8_get(struct FIFO8 *fifo);
+int fifo8_status(struct FIFO8 *fifo);
+
 //graphic.c
 void init_palette(void);
 void set_palette(int start, int end, unsigned char *rgb);
@@ -76,11 +87,6 @@ void set_gate_descriptor(struct GATE_DESCRIPTOR *gateDescriptor, int offset, int
 #define AR_INTGATE32 0x008e
 
 //int.c
-struct KEYBUFFER
-{
-    unsigned char data[32];
-    int nextRead, nextWrite, length;
-};
 void init_pic(void);
 void inthandler21(int *esp);
 void inthandler2c(int *esp);
@@ -97,4 +103,3 @@ void inthandler27(int *esp);
 #define PIC1_ICW2 0x00a1
 #define PIC1_ICW3 0x00a1
 #define PIC1_ICW4 0x00a1
-#define PORT_KEYAT 0x0060 

@@ -1,12 +1,12 @@
 #include <stdio.h>
 #include "bootpack.h"
 
-extern struct KEYBUFFER keyBuffer;
+extern struct FIFO8 keyFifo;
 
 void HariMain(void)
 {
     struct BOOTINFO *bootInfo = (struct BOOTINFO *)ADRESS_BOOTINFO; //boot infoの開始アドレス
-    char s[40], mouseCursor[256];
+    char s[40], mouseCursor[256], keyBuffer[32];
     int mouseX, mouseY, i;
 
     init_gdtidt();
@@ -23,25 +23,20 @@ void HariMain(void)
     sprintf(s, "(%d, %d)", mouseX, mouseY);
     putfonts8_asc(bootInfo->vram, bootInfo->screenX, 0, 0, COLOR8_FFFFFF, s);
 
+    fifo8_init(&keyFifo, 32, keyBuffer);//fofoバッファを初期化
     io_out8(PIC0_IMR, 0xf9);//PIC1とキーボードを許可(11111001)
     io_out8(PIC1_IMR, 0xef);//マウスを許可(11101111)
 
     for (;;)
     {
         io_cli();
-        if(keyBuffer.length == 0)
+        if(fifo8_status(&keyFifo) == 0)
         {
             io_stihlt();
         }
         else
         {
-            i = keyBuffer.data[keyBuffer.nextRead];
-            keyBuffer.length--;
-            keyBuffer.nextRead++;
-            if(keyBuffer.nextRead == 32)
-            {
-                keyBuffer.nextRead = 0;
-            }
+            i = fifo8_get(&keyFifo);
             io_sti();
             sprintf(s, "%02X", i);
             boxfill8(bootInfo->vram, bootInfo->screenX, COLOR8_008484, 0, 16, 15, 31);
