@@ -37,6 +37,7 @@ void HariMain(void)
         {
             i = keyBuffer.data;
             keyBuffer.flag = 0;
+            io_sti();
             sprintf(s, "%02X", i);
             boxfill8(bootInfo->vram, bootInfo->screenX, COLOR8_008484, 0, 16, 15, 31);
             putfonts8_asc(bootInfo->vram, bootInfo->screenX, 0, 16, COLOR8_FFFFFF, s);
