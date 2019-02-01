@@ -25,17 +25,20 @@ void init_pic(void)
     return;
 }
 
+struct KEYBUFFER keyBuffer;
+
 //PS/2キーボードからの割り込み
 void inthandler21(int *esp)
 {
-    struct BOOTINFO *bootInfo = (struct BOOTINFO *)ADRESS_BOOTINFO;
-    unsigned char data, s[4];
+    unsigned char data;
     io_out8(PIC0_OCW2, 0x61);   //PICに割り込みを受け取ったことを通知(IRQ1=0x61,IRQ3=0x63)
     data = io_in8(PORT_KEYAT);
 
-    sprintf(s, "%02X", data);
-    boxfill8(bootInfo->vram, bootInfo->screenX, COLOR8_008484, 0, 16, 15, 31);
-    putfonts8_asc(bootInfo->vram, bootInfo->screenX, 0, 16, COLOR8_FFFFFF, s);
+    if(keyBuffer.flag == 0)
+    {
+        keyBuffer.data = data;
+        keyBuffer.flag = 1;
+    }
     return;
 }
 

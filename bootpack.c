@@ -1,11 +1,13 @@
 #include <stdio.h>
 #include "bootpack.h"
 
+extern struct KEYBUFFER keyBuffer;
+
 void HariMain(void)
 {
     struct BOOTINFO *bootInfo = (struct BOOTINFO *)ADRESS_BOOTINFO; //boot infoの開始アドレス
     char s[40], mouseCursor[256];
-    int mouseX, mouseY;
+    int mouseX, mouseY, i;
 
     init_gdtidt();
     init_pic();
@@ -26,6 +28,18 @@ void HariMain(void)
 
     for (;;)
     {
-        io_hlt();
+        io_cli();
+        if(keyBuffer.flag == 0)
+        {
+            io_stihlt();
+        }
+        else
+        {
+            i = keyBuffer.data;
+            keyBuffer.flag = 0;
+            sprintf(s, "%02X", i);
+            boxfill8(bootInfo->vram, bootInfo->screenX, COLOR8_008484, 0, 16, 15, 31);
+            putfonts8_asc(bootInfo->vram, bootInfo->screenX, 0, 16, COLOR8_FFFFFF, s);
+        }
     }
 }

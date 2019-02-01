@@ -11,6 +11,7 @@ struct BOOTINFO
 void io_hlt(void);
 void io_cli(void);
 void io_sti(void);
+void io_stihlt(void);
 int io_in8(int port);
 void io_out8(int port, int data);
 int io_load_eflags(void);
@@ -75,6 +76,10 @@ void set_gate_descriptor(struct GATE_DESCRIPTOR *gateDescriptor, int offset, int
 #define AR_INTGATE32 0x008e
 
 //int.c
+struct KEYBUFFER
+{
+    unsigned char data, flag;
+};
 void init_pic(void);
 void inthandler21(int *esp);
 void inthandler2c(int *esp);
