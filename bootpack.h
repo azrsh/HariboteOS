@@ -79,7 +79,7 @@ void set_gate_descriptor(struct GATE_DESCRIPTOR *gateDescriptor, int offset, int
 struct KEYBUFFER
 {
     unsigned char data[32];
-    int next;
+    int nextRead, nextWrite, length;
 };
 void init_pic(void);
 void inthandler21(int *esp);
