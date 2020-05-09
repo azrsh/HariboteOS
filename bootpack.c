@@ -4,6 +4,7 @@
 struct MOUSE_DECODE
 {
     unsigned char buffer[3], phase;
+    int x, y, button;
 };
 
 extern struct FIFO8 keyFifo, mouseFifo;
@@ -66,8 +67,21 @@ void HariMain(void)
                 if (mouse_decode(&mouseDecode, i) != 0)
                 {
                     //3バイト貯まったので表示
-                    sprintf(s, "%02X %02X %02X", mouseDecode.buffer[0], mouseDecode.buffer[1], mouseDecode.buffer[2]);
-                    boxfill8(bootInfo->vram, bootInfo->screenX, COLOR8_008484, 32, 16, 32 + 8 * 8 - 1, 31);
+                    sprintf(s, "[lcr %4d %4d]", mouseDecode.x, mouseDecode.y);
+                    if ((mouseDecode.button & 0x01) != 0)
+                    {
+                        s[1] = 'L';
+                    }
+                    if ((mouseDecode.button & 0x02) != 0)
+                    {
+                        s[3] = 'R';
+                    }
+                    if ((mouseDecode.button & 0x04) != 0)
+                    {
+                        s[2] = 'C';
+                    }
+
+                    boxfill8(bootInfo->vram, bootInfo->screenX, COLOR8_008484, 32, 16, 32 + 15 * 8 - 1, 31);
                     putfonts8_asc(bootInfo->vram, bootInfo->screenX, 32, 16, COLOR8_FFFFFF, s);
                 }
             }
@@ -138,8 +152,15 @@ int mouse_decode(struct MOUSE_DECODE *mouseDecode, unsigned char data)
     else if (mouseDecode->phase == 1)
     {
         //マウスの1バイト目を待っている状態だったとき
-        mouseDecode->buffer[0] = data;
-        mouseDecode->phase = 2;
+        if ((data & 0xc8) == 0x08)
+        {
+            //データが正しい1バイト目だったとき
+            //移動に反応する桁が0~3の範囲かつクリックに反応する桁が8~Fの範囲あることを確かめる
+            //このチェックはマウスとの通信が安定しない場合でもバイト列の先頭だと確認できるように入れている
+
+            mouseDecode->buffer[0] = data;
+            mouseDecode->phase = 2;
+        }
         return 0;
     }
     else if (mouseDecode->phase == 2)
@@ -154,6 +175,20 @@ int mouse_decode(struct MOUSE_DECODE *mouseDecode, unsigned char data)
         //マウスの3バイト目を待っている状態だったとき
         mouseDecode->buffer[2] = data;
         mouseDecode->phase = 1;
+        mouseDecode->button = mouseDecode->buffer[0] & 0x07;
+        mouseDecode->x = mouseDecode->buffer[1];
+        mouseDecode->y = mouseDecode->buffer[2];
+        if ((mouseDecode->buffer[0] & 0x10) != 0)
+        {
+            mouseDecode->x |= 0xffffff00;
+        }
+        if ((mouseDecode->buffer[0] & 0x20) != 0)
+        {
+            mouseDecode->y |= 0xffffff00;
+        }
+
+        mouseDecode->y *= -1; //マウスではy方向の符号と画面の向きが反対
+
         return 1;
     }
 
