@@ -36,7 +36,6 @@ void HariMain(void)
     mouseY = (bootInfo->screenY - 28 - 16) / 2;
     init_mouse_cursor8(mouseCursor, COLOR8_008484);
     putblock8_8(bootInfo->vram, bootInfo->screenX, 16, 16, mouseX, mouseY, mouseCursor, 16);
-
     sprintf(s, "(%d, %d)", mouseX, mouseY);
     putfonts8_asc(bootInfo->vram, bootInfo->screenX, 0, 0, COLOR8_FFFFFF, s);
 
@@ -83,6 +82,25 @@ void HariMain(void)
 
                     boxfill8(bootInfo->vram, bootInfo->screenX, COLOR8_008484, 32, 16, 32 + 15 * 8 - 1, 31);
                     putfonts8_asc(bootInfo->vram, bootInfo->screenX, 32, 16, COLOR8_FFFFFF, s);
+
+                    //カーソルの移動
+                    boxfill8(bootInfo->vram, bootInfo->screenX, COLOR8_008484, mouseX, mouseY, mouseX + 15, mouseY + 15); //前のカーソルの削除
+                    mouseX += mouseDecode.x;
+                    mouseY += mouseDecode.y;
+
+                    if (mouseX < 0)
+                        mouseX = 0;
+                    if (mouseY < 0)
+                        mouseY = 0;
+                    if (mouseX > bootInfo->screenX - 16)
+                        mouseX = bootInfo->screenX - 16;
+                    if (mouseY > bootInfo->screenY - 16)
+                        mouseY = bootInfo->screenY - 16;
+
+                    sprintf(s, "(%d, %d)", mouseX, mouseY);
+                    boxfill8(bootInfo->vram, bootInfo->screenX, COLOR8_008484, 0, 0, 79, 15);                //マウスの座標表示を消す
+                    putfonts8_asc(bootInfo->vram, bootInfo->screenX, 0, 0, COLOR8_FFFFFF, s);                //マウスの座標表示の描画
+                    putblock8_8(bootInfo->vram, bootInfo->screenX, 16, 16, mouseX, mouseY, mouseCursor, 16); //カーソルの描画
                 }
             }
         }
