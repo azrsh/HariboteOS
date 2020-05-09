@@ -1,16 +1,22 @@
 #include <stdio.h>
 #include "bootpack.h"
 
+struct MOUSE_DECODE
+{
+    unsigned char buffer[3], phase;
+};
+
 extern struct FIFO8 keyFifo, mouseFifo;
 void init_keyboard(void);
-void enable_mouse(void);
+void enable_mouse(struct MOUSE_DECODE *mouseDecode);
+int mouse_decode(struct MOUSE_DECODE *mouseDecode, unsigned char data);
 
 void HariMain(void)
 {
     struct BOOTINFO *bootInfo = (struct BOOTINFO *)ADRESS_BOOTINFO; //boot infoの開始アドレス
     char s[40], mouseCursor[256], keyBuffer[32], mouseBuffer[128];
     int mouseX, mouseY, i;
-    unsigned char mouse_data_buffer[3], mouse_phase;
+    struct MOUSE_DECODE mouseDecode;
 
     init_gdtidt();
     init_pic();
@@ -33,8 +39,7 @@ void HariMain(void)
     sprintf(s, "(%d, %d)", mouseX, mouseY);
     putfonts8_asc(bootInfo->vram, bootInfo->screenX, 0, 0, COLOR8_FFFFFF, s);
 
-    enable_mouse();
-    mouse_phase = 0;
+    enable_mouse(&mouseDecode);
 
     for (;;)
     {
@@ -58,35 +63,10 @@ void HariMain(void)
                 i = fifo8_get(&mouseFifo);
                 io_sti();
 
-                //マウスの情報は3バイトずつ送られてくるため、未初期化と1~3バイト目の4つの状態を管理する
-                if (mouse_phase == 0)
+                if (mouse_decode(&mouseDecode, i) != 0)
                 {
-                    //マウスの初期化(0xfa)を待っている状態だったとき
-                    if (i == 0xfa)
-                    {
-                        mouse_phase = 1;
-                    }
-                }
-                else if (mouse_phase == 1)
-                {
-                    //マウスの1バイト目を待っている状態だったとき
-                    mouse_data_buffer[0] = i;
-                    mouse_phase = 2;
-                }
-                else if (mouse_phase == 2)
-                {
-                    //マウスの2バイト目を待っている状態だったとき
-                    mouse_data_buffer[1] = i;
-                    mouse_phase = 3;
-                }
-                else if (mouse_phase == 3)
-                {
-                    //マウスの3バイト目を待っている状態だったとき
-                    mouse_data_buffer[2] = i;
-                    mouse_phase = 1;
-
                     //3バイト貯まったので表示
-                    sprintf(s, "%02X %02X %02X", mouse_data_buffer[0], mouse_data_buffer[1], mouse_data_buffer[2]);
+                    sprintf(s, "%02X %02X %02X", mouseDecode.buffer[0], mouseDecode.buffer[1], mouseDecode.buffer[2]);
                     boxfill8(bootInfo->vram, bootInfo->screenX, COLOR8_008484, 32, 16, 32 + 8 * 8 - 1, 31);
                     putfonts8_asc(bootInfo->vram, bootInfo->screenX, 32, 16, COLOR8_FFFFFF, s);
                 }
@@ -130,11 +110,52 @@ void init_keyboard(void)
 #define MOUSECMD_ENABLE 0xf4
 
 //マウスの有効化
-void enable_mouse(void)
+void enable_mouse(struct MOUSE_DECODE *mouseDecode)
 {
     wait_KBC_sendready();
     io_out8(PORT_KEYCMD, KEYCMD_SENDTO_MOUSE);
     wait_KBC_sendready();
     io_out8(PORT_KEYDAT, MOUSECMD_ENABLE);
-    return; //成功するとACK(0xfa)がマウスから送信される
+    //成功するとACK(0xfa)がマウスから送信される
+
+    mouseDecode->phase = 0; //マウスの初期化(ACK,0xfa)を待機する状態へ移行
+
+    return;
+}
+
+int mouse_decode(struct MOUSE_DECODE *mouseDecode, unsigned char data)
+{
+    //マウスの情報は3バイトずつ送られてくるため、未初期化と1~3バイト目の4つの状態を管理する
+    if (mouseDecode->phase == 0)
+    {
+        //マウスの初期化(0xfa)を待っている状態だったとき
+        if (data == 0xfa)
+        {
+            mouseDecode->phase = 1;
+        }
+        return 0;
+    }
+    else if (mouseDecode->phase == 1)
+    {
+        //マウスの1バイト目を待っている状態だったとき
+        mouseDecode->buffer[0] = data;
+        mouseDecode->phase = 2;
+        return 0;
+    }
+    else if (mouseDecode->phase == 2)
+    {
+        //マウスの2バイト目を待っている状態だったとき
+        mouseDecode->buffer[1] = data;
+        mouseDecode->phase = 3;
+        return 0;
+    }
+    else if (mouseDecode->phase == 3)
+    {
+        //マウスの3バイト目を待っている状態だったとき
+        mouseDecode->buffer[2] = data;
+        mouseDecode->phase = 1;
+        return 1;
+    }
+
+    return -1; //到達したらおかしい
 }
