@@ -39,16 +39,17 @@ void inthandler21(int *esp)
     return;
 }
 
+struct FIFO8 mouseFifo;
+
 //PS/2マウスからの割り込み
 void inthandler2c(int *esp)
 {
-    struct BOOTINFO *bootInfo = (struct BOOTINFO *)ADRESS_BOOTINFO;
-    boxfill8(bootInfo->vram, bootInfo->screenX, COLOR8_000000, 0, 0, 32 * 8 - 1, 15);
-    putfonts8_asc(bootInfo->vram, bootInfo->screenX, 0, 0, COLOR8_FFFFFF, "INT 2C (IRQ-12) : PS/2 mouse");
-    for (;;)
-    {
-        io_hlt();
-    }
+    unsigned char data;
+    io_out8(PIC1_OCW2, 0x64); //IRQ-12受付完了をPIC1(スレーブ)に通知(スレーブはIRQ-08~IRQ15を担当し、IRQ-12はスレーブの4番=0x64に接続されている)
+    io_out8(PIC0_OCW2, 0x62); //IRQ-02受付完了をPIC0(マスター)に通知(スレーブはIRQ-02はマスタの2番=0x62に接続されている)
+    data = io_in8(PORT_KEYAT);
+    fifo8_put(&mouseFifo, data);
+    return;
 }
 
 //PIC0からの不完全割り込み対策

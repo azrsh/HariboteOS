@@ -1,14 +1,14 @@
 #include <stdio.h>
 #include "bootpack.h"
 
-extern struct FIFO8 keyFifo;
+extern struct FIFO8 keyFifo, mouseFifo;
 void init_keyboard(void);
 void enable_mouse(void);
 
 void HariMain(void)
 {
     struct BOOTINFO *bootInfo = (struct BOOTINFO *)ADRESS_BOOTINFO; //boot infoの開始アドレス
-    char s[40], mouseCursor[256], keyBuffer[32];
+    char s[40], mouseCursor[256], keyBuffer[32], mouseBuffer[128];
     int mouseX, mouseY, i;
 
     init_gdtidt();
@@ -16,8 +16,10 @@ void HariMain(void)
     io_sti(); //IDT/GDTの初期化が終わったら割り込み禁止を解除する
 
     fifo8_init(&keyFifo, 32, keyBuffer); //fofoバッファを初期化
-    io_out8(PIC0_IMR, 0xf9);             //PIC1とキーボードを許可(11111001)
-    io_out8(PIC1_IMR, 0xef);             //マウスを許可(11101111)
+    fifo8_init(&mouseFifo, 128, mouseBuffer);
+
+    io_out8(PIC0_IMR, 0xf9); //PIC1とキーボードを許可(11111001)
+    io_out8(PIC1_IMR, 0xef); //マウスを許可(11101111)
     init_keyboard();
 
     init_palette();
@@ -35,17 +37,28 @@ void HariMain(void)
     for (;;)
     {
         io_cli();
-        if (fifo8_status(&keyFifo) == 0)
+        if (fifo8_status(&keyFifo) + fifo8_status(&mouseFifo) == 0)
         {
             io_stihlt();
         }
         else
         {
-            i = fifo8_get(&keyFifo);
-            io_sti();
-            sprintf(s, "%02X", i);
-            boxfill8(bootInfo->vram, bootInfo->screenX, COLOR8_008484, 0, 16, 15, 31);
-            putfonts8_asc(bootInfo->vram, bootInfo->screenX, 0, 16, COLOR8_FFFFFF, s);
+            if (fifo8_status(&keyFifo) != 0)
+            {
+                i = fifo8_get(&keyFifo);
+                io_sti();
+                sprintf(s, "%02X", i);
+                boxfill8(bootInfo->vram, bootInfo->screenX, COLOR8_008484, 0, 16, 15, 31);
+                putfonts8_asc(bootInfo->vram, bootInfo->screenX, 0, 16, COLOR8_FFFFFF, s);
+            }
+            else if (fifo8_status(&mouseFifo) != 0)
+            {
+                i = fifo8_get(&mouseFifo);
+                io_sti();
+                sprintf(s, "%02X", i);
+                boxfill8(bootInfo->vram, bootInfo->screenX, COLOR8_008484, 32, 16, 47, 31);
+                putfonts8_asc(bootInfo->vram, bootInfo->screenX, 32, 16, COLOR8_FFFFFF, s);
+            }
         }
     }
 }
