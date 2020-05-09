@@ -10,6 +10,7 @@ void HariMain(void)
     struct BOOTINFO *bootInfo = (struct BOOTINFO *)ADRESS_BOOTINFO; //boot infoの開始アドレス
     char s[40], mouseCursor[256], keyBuffer[32], mouseBuffer[128];
     int mouseX, mouseY, i;
+    unsigned char mouse_data_buffer[3], mouse_phase;
 
     init_gdtidt();
     init_pic();
@@ -33,6 +34,7 @@ void HariMain(void)
     putfonts8_asc(bootInfo->vram, bootInfo->screenX, 0, 0, COLOR8_FFFFFF, s);
 
     enable_mouse();
+    mouse_phase = 0;
 
     for (;;)
     {
@@ -55,9 +57,39 @@ void HariMain(void)
             {
                 i = fifo8_get(&mouseFifo);
                 io_sti();
-                sprintf(s, "%02X", i);
-                boxfill8(bootInfo->vram, bootInfo->screenX, COLOR8_008484, 32, 16, 47, 31);
-                putfonts8_asc(bootInfo->vram, bootInfo->screenX, 32, 16, COLOR8_FFFFFF, s);
+
+                //マウスの情報は3バイトずつ送られてくるため、未初期化と1~3バイト目の4つの状態を管理する
+                if (mouse_phase == 0)
+                {
+                    //マウスの初期化(0xfa)を待っている状態だったとき
+                    if (i == 0xfa)
+                    {
+                        mouse_phase = 1;
+                    }
+                }
+                else if (mouse_phase == 1)
+                {
+                    //マウスの1バイト目を待っている状態だったとき
+                    mouse_data_buffer[0] = i;
+                    mouse_phase = 2;
+                }
+                else if (mouse_phase == 2)
+                {
+                    //マウスの2バイト目を待っている状態だったとき
+                    mouse_data_buffer[1] = i;
+                    mouse_phase = 3;
+                }
+                else if (mouse_phase == 3)
+                {
+                    //マウスの3バイト目を待っている状態だったとき
+                    mouse_data_buffer[2] = i;
+                    mouse_phase = 1;
+
+                    //3バイト貯まったので表示
+                    sprintf(s, "%02X %02X %02X", mouse_data_buffer[0], mouse_data_buffer[1], mouse_data_buffer[2]);
+                    boxfill8(bootInfo->vram, bootInfo->screenX, COLOR8_008484, 32, 16, 32 + 8 * 8 - 1, 31);
+                    putfonts8_asc(bootInfo->vram, bootInfo->screenX, 32, 16, COLOR8_FFFFFF, s);
+                }
             }
         }
     }
