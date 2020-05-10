@@ -14,7 +14,9 @@
         GLOBAL  _io_out8, _io_out16, _io_out32
         GLOBAL  _io_load_eflags, _io_store_eflags
         GLOBAL  _load_gdtr, _load_idtr
+        GLOBAL  _load_cr0, _store_cr0
         GLOBAL  _asm_inthandler21, _asm_inthandler27, _asm_inthandler2c
+        GLOBAL  _memory_test_sub
         EXTERN  _inthandler21, _inthandler27, _inthandler2c
 
 ; 以下は実際の関数
@@ -96,6 +98,15 @@ _load_idtr                          ; void load_idtr(int limit,int adress);
     LIDT    [ESP+6]
     RET
 
+_load_cr0
+    MOV     EAX, CR0                ; int load_cr0();
+    RET
+
+_store_cr0                          ; void store_cr0(int cr0);
+    MOV     EAX, [ESP+4]            ; cr0
+    MOV     CR0, EAX
+    RET
+
 ; レジスタの値をいったんFILO型Stackに保存し、割り込み処理の後CPUを元の状態に復帰させる
 _asm_inthandler21
     PUSH    ES
@@ -144,3 +155,36 @@ _asm_inthandler2c
     POP     DS
     POP     ES
     IRETD
+
+_memory_test_sub:                  ; unsigned int memmory_test_sub(unsigned int start, unsigned int end);
+	PUSH	EDI                     ; EDI, ESI, EBXの使用を宣言
+	PUSH	ESI
+	PUSH	EBX
+	MOV	    ESI, 0xaa55aa55         ; pattern0 = 0xaa55aa55;
+	MOV	    EDI, 0x55aa55aa         ; pattern1 = 0x55aa55aa;
+	MOV	    EAX, [ESP+12+4]         ; i = start;
+memory_test_loop:
+    MOV     EBX, EAX
+    ADD	    EBX, 0xffc              ; p = i + 0xffc;
+    MOV     EDX, [EBX]              ; old = *p;
+    MOV     [EBX], ESI              ; *p = pattern0; 試しに書き込む
+    XOR     DWORD [EBX], 0xffffffff ; *p ^= 0xffffffff; 値を反転 チップセットや回路によってはメモリが無いアドレスでも書き込んだ値がそのまま読めてしまう場合があるので何度か反転して試す
+	CMP     EDI, [EBX]              ; if (*p != pattern1)
+    JNE	    memory_test_final       ; goto memory_test_final;
+    XOR     DWORD [EBX], 0xffffffff ; *p ^= 0xffffffff; 再度反転
+    CMP     ESI, [EBX]              ; if (*p != pattern1)
+    JNE	    memory_test_final       ; goto memory_test_final;
+    MOV     [EBX], EDX              ; *p = old; メモリを復元
+    ADD     EAX, 0x1000             ; i += 0x1000;
+    CMP     EAX, [ESP+12+8]         ; if(i <= end)
+    JBE     memory_test_loop       ; goto memory_test_loop;
+    POP     EBX                     ; レジスタを返却
+    POP     ESI
+    POP     EDI
+    RET
+memory_test_final:
+	MOV     [EBX], EDX              ; *p = old; メモリを復元
+    POP     EBX                     ; レジスタを返却
+    POP     ESI
+    POP     EDI
+    RET

@@ -18,9 +18,12 @@ int io_load_eflags(void);
 void io_store_eflags(int eflags);
 void load_gdtr(int limit, int adress);
 void load_idtr(int limit, int adress);
+int load_cr0(void);
+void store_cr0(int cr0);
 void asm_inthandler21(void);
 void asm_inthandler27(void);
 void asm_inthandler2c(void);
+unsigned int memory_test_sub(unsigned int start, unsigned int end);
 
 //fifo.c
 struct FIFO8

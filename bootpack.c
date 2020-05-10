@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include "bootpack.h"
 
+unsigned int memory_test(unsigned int start, unsigned int end);
+
 void HariMain(void)
 {
     struct BOOTINFO *bootInfo = (struct BOOTINFO *)ADRESS_BOOTINFO; //boot infoの開始アドレス
@@ -17,7 +19,9 @@ void HariMain(void)
 
     io_out8(PIC0_IMR, 0xf9); //PIC1とキーボードを許可(11111001)
     io_out8(PIC1_IMR, 0xef); //マウスを許可(11101111)
+
     init_keyboard();
+    enable_mouse(&mouseDecode);
 
     init_palette();
     init_screen(bootInfo->vram, bootInfo->screenX, bootInfo->screenY);
@@ -28,7 +32,9 @@ void HariMain(void)
     sprintf(s, "(%d, %d)", mouseX, mouseY);
     putfonts8_asc(bootInfo->vram, bootInfo->screenX, 0, 0, COLOR8_FFFFFF, s);
 
-    enable_mouse(&mouseDecode);
+    i = memory_test(0x00400000, 0xbfffffff) / (1024 * 1024);
+    sprintf(s, "memory %dMB", i);
+    putfonts8_asc(bootInfo->vram, bootInfo->screenX, 0, 32, COLOR8_FFFFFF, s);
 
     for (;;)
     {
@@ -94,4 +100,43 @@ void HariMain(void)
             }
         }
     }
+}
+
+#define EFLAGS_AC_BIT 0x00040000
+#define CR0_CACHE_DISABLE 0x60000000
+
+unsigned int memory_test(unsigned int start, unsigned int end)
+{
+    char flag486 = 0;
+    unsigned int eflag, cr0, i;
+
+    //386以前(キャッシュメモリ無し)か486(キャッシュメモリあり)以降なのかを確認
+    eflag = io_load_eflags();
+    eflag |= EFLAGS_AC_BIT; //AC-itを1に変更
+    io_store_eflags(eflag);
+    eflag = io_load_eflags();
+    if ((eflag & EFLAGS_AC_BIT) != 0) //386ではAC=1に変更しても自動で元に戻ってしまう
+    {
+        flag486 = 1;
+    }
+    eflag &= ~EFLAGS_AC_BIT; //復元
+    io_store_eflags(eflag);
+
+    if (flag486 != 0)
+    {
+        cr0 = load_cr0();
+        cr0 |= CR0_CACHE_DISABLE; //キャッシュ無効化
+        store_cr0(cr0);
+    }
+
+    i = memory_test_sub(start, end);
+
+    if (flag486 != 0)
+    {
+        cr0 = load_cr0();
+        cr0 &= ~CR0_CACHE_DISABLE; //キャッシュ有効化
+        store_cr0(cr0);
+    }
+
+    return i;
 }
