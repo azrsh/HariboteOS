@@ -3,8 +3,6 @@
 #include <stdio.h>
 #include "bootpack.h"
 
-#define PORT_KEYAT 0x0060
-
 //PICの初期化
 void init_pic(void)
 {
@@ -24,31 +22,6 @@ void init_pic(void)
     io_out8(PIC0_IMR, 0xfb);
     io_out8(PIC1_IMR, 0xff);
 
-    return;
-}
-
-struct FIFO8 keyFifo;
-
-//PS/2キーボードからの割り込み
-void inthandler21(int *esp)
-{
-    unsigned char data;
-    io_out8(PIC0_OCW2, 0x61); //PICに割り込みを受け取ったことを通知(IRQ1=0x61,IRQ3=0x63)
-    data = io_in8(PORT_KEYAT);
-    fifo8_put(&keyFifo, data);
-    return;
-}
-
-struct FIFO8 mouseFifo;
-
-//PS/2マウスからの割り込み
-void inthandler2c(int *esp)
-{
-    unsigned char data;
-    io_out8(PIC1_OCW2, 0x64); //IRQ-12受付完了をPIC1(スレーブ)に通知(スレーブはIRQ-08~IRQ15を担当し、IRQ-12はスレーブの4番=0x64に接続されている)
-    io_out8(PIC0_OCW2, 0x62); //IRQ-02受付完了をPIC0(マスター)に通知(スレーブはIRQ-02はマスタの2番=0x62に接続されている)
-    data = io_in8(PORT_KEYAT);
-    fifo8_put(&mouseFifo, data);
     return;
 }
 
