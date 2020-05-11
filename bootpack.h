@@ -122,3 +122,21 @@ void inthandler21(int *esp);
 void enable_mouse(struct MOUSE_DECODE *mouseDecode);
 int mouse_decode(struct MOUSE_DECODE *mouseDecode, unsigned char data);
 extern struct FIFO8 mouseFifo;
+
+//memory.c
+#define MEMMAN_FREES 4090      //約32KB
+#define MEMMAN_ADDR 0x003c0000 //メモリマネージャの先頭アドレス。ここから32KBがメモリマネージャの構造体
+struct FREEINFO
+{
+    unsigned int address, size;
+};
+struct MEMORYMANAGER
+{
+    int frees, maxfrees, lostSize, losts;
+    struct FREEINFO freeInfo[MEMMAN_FREES];
+};
+unsigned int memory_test(unsigned int start, unsigned int end);
+void memorymanager_init(struct MEMORYMANAGER *memorymanager);
+unsigned int memorymanager_total(struct MEMORYMANAGER *memorymanager);
+unsigned int memorymanager_allocate(struct MEMORYMANAGER *memorymanager, unsigned int size);
+int memorymanager_free(struct MEMORYMANAGER *memorymanager, unsigned int address, unsigned int size);
