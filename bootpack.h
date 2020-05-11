@@ -160,6 +160,6 @@ struct SHEETCONTROL *sheetcontrol_init(struct MEMORYMANAGER *memoryManager, unsi
 struct SHEET *sheet_allocate(struct SHEETCONTROL *control);
 void sheet_set_buffer(struct SHEET *sheet, unsigned char *buffer, int xSize, int ySize, int colorInvisible);
 void sheet_updown(struct SHEETCONTROL *control, struct SHEET *sheet, int height);
-void sheet_refresh(struct SHEETCONTROL *control);
+void sheet_refresh(struct SHEETCONTROL *control, struct SHEET *sheet, int box0, int boxY0, int boxX1, int boxY1);
 void sheet_slide(struct SHEETCONTROL *control, struct SHEET *sheet, int vramX0, int vramY0);
 void sheet_free(struct SHEETCONTROL *control, struct SHEET *sheet);

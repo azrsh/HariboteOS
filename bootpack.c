@@ -52,7 +52,7 @@ void HariMain(void)
     putfonts8_asc(bufferBackgroud, bootInfo->screenX, 0, 0, COLOR8_FFFFFF, s);
     sprintf(s, "memory %dMB    free : %dKB", memoryTotal / (1024 * 1024), memorymanager_total(memoryManager) / 1024);
     putfonts8_asc(bufferBackgroud, bootInfo->screenX, 0, 32, COLOR8_FFFFFF, s);
-    sheet_refresh(sheetControl);
+    sheet_refresh(sheetControl, sheetBackgroud, 0, 0, bootInfo->screenX, 48);
 
     for (;;)
     {
@@ -70,7 +70,7 @@ void HariMain(void)
                 sprintf(s, "%02X", i);
                 boxfill8(bufferBackgroud, bootInfo->screenX, COLOR8_008484, 0, 16, 15, 31);
                 putfonts8_asc(bufferBackgroud, bootInfo->screenX, 0, 16, COLOR8_FFFFFF, s);
-                sheet_refresh(sheetControl);
+                sheet_refresh(sheetControl, sheetBackgroud, 0, 16, 16, 32);
             }
             else if (fifo8_status(&mouseFifo) != 0)
             {
@@ -96,6 +96,7 @@ void HariMain(void)
 
                     boxfill8(bufferBackgroud, bootInfo->screenX, COLOR8_008484, 32, 16, 32 + 15 * 8 - 1, 31);
                     putfonts8_asc(bufferBackgroud, bootInfo->screenX, 32, 16, COLOR8_FFFFFF, s);
+                    sheet_refresh(sheetControl, sheetBackgroud, 32, 16, 32 + 15 * 8, 32);
 
                     //カーソルの移動
                     mouseX += mouseDecode.x;
@@ -113,7 +114,8 @@ void HariMain(void)
                     sprintf(s, "(%3d, %3d)", mouseX, mouseY);
                     boxfill8(bufferBackgroud, bootInfo->screenX, COLOR8_008484, 0, 0, 79, 15); //マウスの座標表示を消す
                     putfonts8_asc(bufferBackgroud, bootInfo->screenX, 0, 0, COLOR8_FFFFFF, s); //マウスの座標表示の描画
-                    sheet_slide(sheetControl, sheetMouse, mouseX, mouseY);                     //カーソルの描画、sheet_refresh含む
+                    sheet_refresh(sheetControl, sheetBackgroud, 0, 0, 80, 16);
+                    sheet_slide(sheetControl, sheetMouse, mouseX, mouseY); //カーソルの描画、sheet_refresh含む
                 }
             }
         }
