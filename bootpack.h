@@ -140,3 +140,26 @@ void memorymanager_init(struct MEMORYMANAGER *memorymanager);
 unsigned int memorymanager_total(struct MEMORYMANAGER *memorymanager);
 unsigned int memorymanager_allocate(struct MEMORYMANAGER *memorymanager, unsigned int size);
 int memorymanager_free(struct MEMORYMANAGER *memorymanager, unsigned int address, unsigned int size);
+unsigned int memorymanager_allocate_4k(struct MEMORYMANAGER *memorymanager, unsigned int size);
+int memorymanager_free_4k(struct MEMORYMANAGER *memorymanager, unsigned int address, unsigned int size);
+//sheet.c
+#define MAX_SHEETS 156
+struct SHEET
+{
+    unsigned char *buffer;
+    int boxXSize, boxYSize, vramX0, vramY0, colorInvisible, height, flags;
+};
+struct SHEETCONTROL
+{
+    unsigned char *vram;
+    int xSize, ySize, top; //vramのサイズ、最上位のシート
+    struct SHEET *sheets[MAX_SHEETS];
+    struct SHEET sheets0[MAX_SHEETS];
+};
+struct SHEETCONTROL *sheetcontrol_init(struct MEMORYMANAGER *memoryManager, unsigned char *vram, int xSize, int ySize);
+struct SHEET *sheet_allocate(struct SHEETCONTROL *control);
+void sheet_set_buffer(struct SHEET *sheet, unsigned char *buffer, int xSize, int ySize, int colorInvisible);
+void sheet_updown(struct SHEETCONTROL *control, struct SHEET *sheet, int height);
+void sheet_refresh(struct SHEETCONTROL *control);
+void sheet_slide(struct SHEETCONTROL *control, struct SHEET *sheet, int vramX0, int vramY0);
+void sheet_free(struct SHEETCONTROL *control, struct SHEET *sheet);

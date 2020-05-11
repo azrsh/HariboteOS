@@ -1,0 +1,171 @@
+#include "bootpack.h"
+
+#define SHEET_USE 1
+
+struct SHEETCONTROL *sheetcontrol_init(struct MEMORYMANAGER *memoryManager, unsigned char *vram, int xSize, int ySize)
+{
+    struct SHEETCONTROL *control;
+    int i;
+    control = (struct SHEETCONTROL *)memorymanager_allocate_4k(memoryManager, sizeof(struct SHEETCONTROL));
+    if (control == 0)
+    {
+        goto error;
+    }
+    control->vram = vram;
+    control->xSize = xSize;
+    control->ySize = ySize;
+    control->top = -1;
+    for (i = 0; i < MAX_SHEETS; i++)
+    {
+        control->sheets0[i].flags = 0; //未使用マーク
+    }
+
+error:
+    return control;
+}
+
+struct SHEET *sheet_allocate(struct SHEETCONTROL *control)
+{
+    struct SHEET *sheet;
+    int i;
+    for (i = 0; i < MAX_SHEETS; i++)
+    {
+        if (control->sheets0[i].flags == 0)
+        {
+            sheet = &control->sheets0[i];
+            sheet->flags = SHEET_USE; //使用中フラグを立てる
+            sheet->height = -1;       //非表示に設定
+            return sheet;
+        }
+    }
+
+    return 0; //すべてのsheetが使用中だった
+}
+
+void sheet_set_buffer(struct SHEET *sheet, unsigned char *buffer, int xSize, int ySize, int colorInvisible)
+{
+    sheet->buffer = buffer;
+    sheet->boxXSize = xSize;
+    sheet->boxYSize = ySize;
+    sheet->colorInvisible = colorInvisible;
+    return;
+}
+
+void sheet_updown(struct SHEETCONTROL *control, struct SHEET *sheet, int height)
+{
+    int h, old = sheet->height; //設定前の高さを記憶する
+
+    //指定が高すぎたり低すぎたりしたら修正する
+    if (height > control->top + 1)
+    {
+        height = control->top + 1;
+    }
+    if (height < -1)
+    {
+        height = -1;
+    }
+
+    sheet->height = height; //高さを設定
+
+    //以下はsheets[]のソート
+    if (old > height) //以前よりも低くなるとき
+    {
+        if (height > 0)
+        {
+            //間のものを引き上げる
+            for (h = old; h > height; h--)
+            {
+                control->sheets[h] = control->sheets[h - 1];
+                control->sheets[h]->height = h;
+            }
+            control->sheets[height] = sheet;
+        }
+        else //非表示になるとき
+        {
+            if (control->top > old) //一番上でないとき
+            {
+                //上になっているものを下ろす
+                for (h = old; h < control->top; h++)
+                {
+                    control->sheets[h] = control->sheets[h + 1];
+                    control->sheets[h]->height = h;
+                }
+            }
+            control->top--; //表示中の下敷きが一つへるので、一番上の高さが減る
+        }
+        sheet_refresh(control);
+    }
+    else if (old < height) //以前よりも高くなるとき
+    {
+        if (old >= 0) //もともと表示されていたとき
+        {
+            //間のものを押し下げる
+            for (h = old; h < control->top; h++)
+            {
+                control->sheets[h] = control->sheets[h + 1];
+                control->sheets[h]->height = h;
+            }
+            control->sheets[height] = sheet;
+        }
+        else //非表示から表示状態になるとき
+        {
+            //上になるものを持ち上げる
+            for (h = control->top; h >= height; h--)
+            {
+                control->sheets[h + 1] = control->sheets[h];
+                control->sheets[h + 1]->height = h + 1;
+            }
+            control->sheets[height] = sheet;
+            control->top++; //表示中の下敷きが一つ増えるので、一番上の高さが増える
+        }
+        sheet_refresh(control);
+    }
+    return;
+}
+
+void sheet_refresh(struct SHEETCONTROL *control)
+{
+    int h, boxX, boxY, vramX, vramY; //左から処理中の高さ、sheet上のX座標、sheet上のY座標、vram上のX座標、vram上のY座標
+    unsigned char *buffer, c, *vram = control->vram;
+    struct SHEET *sheet;
+    for (h = 0; h <= control->top; h++)
+    {
+        sheet = control->sheets[h];
+        buffer = sheet->buffer;
+        for (boxY = 0; boxY < sheet->boxYSize; boxY++)
+        {
+            vramY = sheet->vramY0 + boxY;
+            for (boxX = 0; boxX < sheet->boxXSize; boxX++)
+            {
+                vramX = sheet->vramX0 + boxX;
+                c = buffer[boxY * sheet->boxXSize + boxX];
+                if (c != sheet->colorInvisible)
+                {
+                    vram[vramY * control->xSize + vramX] = c;
+                }
+            }
+        }
+    }
+    return;
+}
+
+void sheet_slide(struct SHEETCONTROL *control, struct SHEET *sheet, int vramX0, int vramY0)
+{
+    sheet->vramX0 = vramX0;
+    sheet->vramY0 = vramY0;
+    if (sheet->height >= 0) //表示中の場合
+    {
+        sheet_refresh(control); //vramの更新
+    }
+    return;
+}
+
+void sheet_free(struct SHEETCONTROL *control, struct SHEET *sheet)
+{
+    if (sheet->height >= 0) //表示中の場合
+    {
+        sheet_updown(control, sheet, -1);
+    }
+    sheet->flags = 0; //未使用フラグを建てる
+    return;
+}

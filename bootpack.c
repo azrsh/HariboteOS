@@ -9,6 +9,9 @@ void HariMain(void)
     unsigned int memoryTotal;
     struct MOUSE_DECODE mouseDecode;
     struct MEMORYMANAGER *memoryManager = (struct MEMORYMANAGER *)MEMMAN_ADDR;
+    struct SHEETCONTROL *sheetControl;
+    struct SHEET *sheetBackgroud, *sheetMouse;
+    unsigned char *bufferBackgroud, bufferMouse[256];
 
     init_gdtidt();
     init_pic();
@@ -29,16 +32,27 @@ void HariMain(void)
     memorymanager_free(memoryManager, 0x00400000, memoryTotal - 0x00400000);
 
     init_palette();
-    init_screen(bootInfo->vram, bootInfo->screenX, bootInfo->screenY);
+
+    sheetControl = sheetcontrol_init(memoryManager, bootInfo->vram, bootInfo->screenX, bootInfo->screenY);
+    sheetBackgroud = sheet_allocate(sheetControl);
+    sheetMouse = sheet_allocate(sheetControl);
+    bufferBackgroud = (unsigned char *)memorymanager_allocate_4k(memoryManager, bootInfo->screenX * bootInfo->screenY);
+    sheet_set_buffer(sheetBackgroud, bufferBackgroud, bootInfo->screenX, bootInfo->screenY, -1); //透明色無し
+    sheet_set_buffer(sheetMouse, bufferMouse, 16, 16, 99);                                       //透明色は99番
+
+    init_screen(bufferBackgroud, bootInfo->screenX, bootInfo->screenY);
+    init_mouse_cursor8(bufferMouse, 99);
+    sheet_slide(sheetControl, sheetBackgroud, 0, 0);
     mouseX = (bootInfo->screenX - 16) / 2; //画面中央に配置
     mouseY = (bootInfo->screenY - 28 - 16) / 2;
-    init_mouse_cursor8(mouseCursor, COLOR8_008484);
-    putblock8_8(bootInfo->vram, bootInfo->screenX, 16, 16, mouseX, mouseY, mouseCursor, 16);
-    sprintf(s, "(%d, %d)", mouseX, mouseY);
-    putfonts8_asc(bootInfo->vram, bootInfo->screenX, 0, 0, COLOR8_FFFFFF, s);
-
+    sheet_slide(sheetControl, sheetMouse, mouseX, mouseY);
+    sheet_updown(sheetControl, sheetBackgroud, 0);
+    sheet_updown(sheetControl, sheetMouse, 1);
+    sprintf(s, "(%3d, %3d)", mouseX, mouseY);
+    putfonts8_asc(bufferBackgroud, bootInfo->screenX, 0, 0, COLOR8_FFFFFF, s);
     sprintf(s, "memory %dMB    free : %dKB", memoryTotal / (1024 * 1024), memorymanager_total(memoryManager) / 1024);
-    putfonts8_asc(bootInfo->vram, bootInfo->screenX, 0, 32, COLOR8_FFFFFF, s);
+    putfonts8_asc(bufferBackgroud, bootInfo->screenX, 0, 32, COLOR8_FFFFFF, s);
+    sheet_refresh(sheetControl);
 
     for (;;)
     {
@@ -54,8 +68,9 @@ void HariMain(void)
                 i = fifo8_get(&keyFifo);
                 io_sti();
                 sprintf(s, "%02X", i);
-                boxfill8(bootInfo->vram, bootInfo->screenX, COLOR8_008484, 0, 16, 15, 31);
-                putfonts8_asc(bootInfo->vram, bootInfo->screenX, 0, 16, COLOR8_FFFFFF, s);
+                boxfill8(bufferBackgroud, bootInfo->screenX, COLOR8_008484, 0, 16, 15, 31);
+                putfonts8_asc(bufferBackgroud, bootInfo->screenX, 0, 16, COLOR8_FFFFFF, s);
+                sheet_refresh(sheetControl);
             }
             else if (fifo8_status(&mouseFifo) != 0)
             {
@@ -79,11 +94,10 @@ void HariMain(void)
                         s[2] = 'C';
                     }
 
-                    boxfill8(bootInfo->vram, bootInfo->screenX, COLOR8_008484, 32, 16, 32 + 15 * 8 - 1, 31);
-                    putfonts8_asc(bootInfo->vram, bootInfo->screenX, 32, 16, COLOR8_FFFFFF, s);
+                    boxfill8(bufferBackgroud, bootInfo->screenX, COLOR8_008484, 32, 16, 32 + 15 * 8 - 1, 31);
+                    putfonts8_asc(bufferBackgroud, bootInfo->screenX, 32, 16, COLOR8_FFFFFF, s);
 
                     //カーソルの移動
-                    boxfill8(bootInfo->vram, bootInfo->screenX, COLOR8_008484, mouseX, mouseY, mouseX + 15, mouseY + 15); //前のカーソルの削除
                     mouseX += mouseDecode.x;
                     mouseY += mouseDecode.y;
 
@@ -96,10 +110,10 @@ void HariMain(void)
                     if (mouseY > bootInfo->screenY - 16)
                         mouseY = bootInfo->screenY - 16;
 
-                    sprintf(s, "(%d, %d)", mouseX, mouseY);
-                    boxfill8(bootInfo->vram, bootInfo->screenX, COLOR8_008484, 0, 0, 79, 15);                //マウスの座標表示を消す
-                    putfonts8_asc(bootInfo->vram, bootInfo->screenX, 0, 0, COLOR8_FFFFFF, s);                //マウスの座標表示の描画
-                    putblock8_8(bootInfo->vram, bootInfo->screenX, 16, 16, mouseX, mouseY, mouseCursor, 16); //カーソルの描画
+                    sprintf(s, "(%3d, %3d)", mouseX, mouseY);
+                    boxfill8(bufferBackgroud, bootInfo->screenX, COLOR8_008484, 0, 0, 79, 15); //マウスの座標表示を消す
+                    putfonts8_asc(bufferBackgroud, bootInfo->screenX, 0, 0, COLOR8_FFFFFF, s); //マウスの座標表示の描画
+                    sheet_slide(sheetControl, sheetMouse, mouseX, mouseY);                     //カーソルの描画、sheet_refresh含む
                 }
             }
         }
