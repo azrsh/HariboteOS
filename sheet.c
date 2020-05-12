@@ -19,7 +19,8 @@ struct SHEETCONTROL *sheetcontrol_init(struct MEMORYMANAGER *memoryManager, unsi
     control->top = -1;
     for (i = 0; i < MAX_SHEETS; i++)
     {
-        control->sheets0[i].flags = 0; //未使用マーク
+        control->sheets0[i].flags = 0;         //未使用マーク
+        control->sheets0[i].control = control; //所属を記録
     }
 
 error:
@@ -53,9 +54,10 @@ void sheet_set_buffer(struct SHEET *sheet, unsigned char *buffer, int xSize, int
     return;
 }
 
-void sheet_updown(struct SHEETCONTROL *control, struct SHEET *sheet, int height)
+void sheet_updown(struct SHEET *sheet, int height)
 {
     int h, old = sheet->height; //設定前の高さを記憶する
+    struct SHEETCONTROL *control = sheet->control;
 
     //指定が高すぎたり低すぎたりしたら修正する
     if (height > control->top + 1)
@@ -125,12 +127,12 @@ void sheet_updown(struct SHEETCONTROL *control, struct SHEET *sheet, int height)
     return;
 }
 
-void sheet_refresh(struct SHEETCONTROL *control, struct SHEET *sheet, int boxX0, int boxY0, int boxX1, int boxY1)
+void sheet_refresh(struct SHEET *sheet, int boxX0, int boxY0, int boxX1, int boxY1)
 {
     if (sheet->height >= 0) //表示中の場合
     {
         //下敷きに沿って画面を書き直す
-        sheet_refreshsub(control, sheet->vramX0 + boxX0, sheet->vramY0 + boxY0, sheet->vramX0 + boxX1, sheet->vramY0 + boxY1);
+        sheet_refreshsub(sheet->control, sheet->vramX0 + boxX0, sheet->vramY0 + boxY0, sheet->vramX0 + boxX1, sheet->vramY0 + boxY1);
     }
     return;
 }
@@ -186,24 +188,24 @@ void sheet_refreshsub(struct SHEETCONTROL *control, int vramX0, int vramY0, int 
     return;
 }
 
-void sheet_slide(struct SHEETCONTROL *control, struct SHEET *sheet, int vramX0, int vramY0)
+void sheet_slide(struct SHEET *sheet, int vramX0, int vramY0)
 {
     int oldVramX0 = sheet->vramX0, oldVramY0 = sheet->vramY0;
     sheet->vramX0 = vramX0;
     sheet->vramY0 = vramY0;
     if (sheet->height >= 0) //表示中の場合
     {
-        sheet_refreshsub(control, oldVramX0, oldVramY0, oldVramX0 + sheet->boxXSize, oldVramY0 + sheet->boxYSize); //vramの更新
-        sheet_refreshsub(control, vramX0, vramY0, vramX0 + sheet->boxXSize, vramY0 + sheet->boxYSize);
+        sheet_refreshsub(sheet->control, oldVramX0, oldVramY0, oldVramX0 + sheet->boxXSize, oldVramY0 + sheet->boxYSize); //vramの更新
+        sheet_refreshsub(sheet->control, vramX0, vramY0, vramX0 + sheet->boxXSize, vramY0 + sheet->boxYSize);
     }
     return;
 }
 
-void sheet_free(struct SHEETCONTROL *control, struct SHEET *sheet)
+void sheet_free(struct SHEET *sheet)
 {
     if (sheet->height >= 0) //表示中の場合
     {
-        sheet_updown(control, sheet, -1);
+        sheet_updown(sheet, -1);
     }
     sheet->flags = 0; //未使用フラグを建てる
     return;
