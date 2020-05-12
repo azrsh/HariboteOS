@@ -2,7 +2,8 @@
 
 #define SHEET_USE 1
 
-void sheet_refreshsub(struct SHEETCONTROL *control, int vramX0, int vramY0, int vramX1, int vramY1, int h0);
+void sheet_refresh_sub(struct SHEETCONTROL *control, int vramX0, int vramY0, int vramX1, int vramY1, int h0, int h1);
+void sheet_refresh_map(struct SHEETCONTROL *control, int vramX0, int vramY0, int vramX1, int vramY1, int h0);
 
 struct SHEETCONTROL *sheetcontrol_init(struct MEMORYMANAGER *memoryManager, unsigned char *vram, int xSize, int ySize)
 {
@@ -13,6 +14,14 @@ struct SHEETCONTROL *sheetcontrol_init(struct MEMORYMANAGER *memoryManager, unsi
     {
         goto error;
     }
+
+    control->map = (unsigned char *)memorymanager_allocate_4k(memoryManager, xSize * ySize);
+    if (control->map == 0)
+    {
+        memorymanager_free_4k(memoryManager, (unsigned int)control, sizeof(struct SHEETCONTROL));
+        goto error;
+    }
+
     control->vram = vram;
     control->xSize = xSize;
     control->ySize = ySize;
@@ -83,7 +92,8 @@ void sheet_updown(struct SHEET *sheet, int height)
                 control->sheets[h]->height = h;
             }
             control->sheets[height] = sheet;
-            sheet_refreshsub(control, sheet->vramX0, sheet->vramY0, sheet->vramX0 + sheet->boxXSize, sheet->vramY0 + sheet->boxYSize, height + 1);
+            sheet_refresh_map(control, sheet->vramX0, sheet->vramY0, sheet->vramX0 + sheet->boxXSize, sheet->vramY0 + sheet->boxYSize, height + 1);
+            sheet_refresh_sub(control, sheet->vramX0, sheet->vramY0, sheet->vramX0 + sheet->boxXSize, sheet->vramY0 + sheet->boxYSize, height + 1, old);
         }
         else //非表示になるとき
         {
@@ -97,7 +107,8 @@ void sheet_updown(struct SHEET *sheet, int height)
                 }
             }
             control->top--; //表示中の下敷きが一つへるので、一番上の高さが減る
-            sheet_refreshsub(control, sheet->vramX0, sheet->vramY0, sheet->vramX0 + sheet->boxXSize, sheet->vramY0 + sheet->boxYSize, 0);
+            sheet_refresh_map(control, sheet->vramX0, sheet->vramY0, sheet->vramX0 + sheet->boxXSize, sheet->vramY0 + sheet->boxYSize, 0);
+            sheet_refresh_sub(control, sheet->vramX0, sheet->vramY0, sheet->vramX0 + sheet->boxXSize, sheet->vramY0 + sheet->boxYSize, 0, old - 1);
         }
     }
     else if (old < height) //以前よりも高くなるとき
@@ -123,7 +134,8 @@ void sheet_updown(struct SHEET *sheet, int height)
             control->sheets[height] = sheet;
             control->top++; //表示中の下敷きが一つ増えるので、一番上の高さが増える
         }
-        sheet_refreshsub(control, sheet->vramX0, sheet->vramY0, sheet->vramX0 + sheet->boxXSize, sheet->vramY0 + sheet->boxYSize, height);
+        sheet_refresh_map(control, sheet->vramX0, sheet->vramY0, sheet->vramX0 + sheet->boxXSize, sheet->vramY0 + sheet->boxYSize, height);
+        sheet_refresh_sub(control, sheet->vramX0, sheet->vramY0, sheet->vramX0 + sheet->boxXSize, sheet->vramY0 + sheet->boxYSize, height, height);
     }
     return;
 }
@@ -133,15 +145,15 @@ void sheet_refresh(struct SHEET *sheet, int boxX0, int boxY0, int boxX1, int box
     if (sheet->height >= 0) //表示中の場合
     {
         //下敷きに沿って画面を書き直す
-        sheet_refreshsub(sheet->control, sheet->vramX0 + boxX0, sheet->vramY0 + boxY0, sheet->vramX0 + boxX1, sheet->vramY0 + boxY1, sheet->height);
+        sheet_refresh_sub(sheet->control, sheet->vramX0 + boxX0, sheet->vramY0 + boxY0, sheet->vramX0 + boxX1, sheet->vramY0 + boxY1, sheet->height, sheet->height);
     }
     return;
 }
 
-void sheet_refreshsub(struct SHEETCONTROL *control, int vramX0, int vramY0, int vramX1, int vramY1, int h0)
+void sheet_refresh_sub(struct SHEETCONTROL *control, int vramX0, int vramY0, int vramX1, int vramY1, int h0, int h1)
 {
     int h, boxX, boxY, vramX, vramY, boxX0, boxY0, boxX1, boxY1; //左から処理中の高さ、sheet上のX座標、sheet上のY座標、vram上のX座標、vram上のY座標
-    unsigned char *buffer, c, *vram = control->vram;
+    unsigned char *buffer, sheetId, *vram = control->vram, *map = control->map;
     struct SHEET *sheet;
 
     //refreshの範囲が画面外に出ていれば補正
@@ -154,9 +166,10 @@ void sheet_refreshsub(struct SHEETCONTROL *control, int vramX0, int vramY0, int 
     if (vramY1 > control->ySize)
         vramY1 = control->ySize;
 
-    for (h = h0; h <= control->top; h++)
+    for (h = h0; h <= h1; h++)
     {
         sheet = control->sheets[h];
+        sheetId = sheet - control->sheets0; //sheetの実体のアドレスを引き算してIDとして利用
         buffer = sheet->buffer;
 
         //vramX0~vramY1を使って、boxX0~boxY1を計算
@@ -178,10 +191,60 @@ void sheet_refreshsub(struct SHEETCONTROL *control, int vramX0, int vramY0, int 
             for (boxX = boxX0; boxX < boxX1; boxX++)
             {
                 vramX = sheet->vramX0 + boxX;
-                c = buffer[boxY * sheet->boxXSize + boxX];
-                if (c != sheet->colorInvisible)
+                if (map[vramY * control->xSize + vramX] == sheetId)
                 {
-                    vram[vramY * control->xSize + vramX] = c;
+                    vram[vramY * control->xSize + vramX] = buffer[boxY * sheet->boxXSize + boxX];
+                }
+            }
+        }
+    }
+    return;
+}
+
+void sheet_refresh_map(struct SHEETCONTROL *control, int vramX0, int vramY0, int vramX1, int vramY1, int h0)
+{
+    int h, boxX, boxY, vramX, vramY, boxX0, boxY0, boxX1, boxY1; //左から処理中の高さ、sheet上のX座標、sheet上のY座標、vram上のX座標、vram上のY座標
+    unsigned char *buffer, sheetId, *map = control->map;
+    struct SHEET *sheet;
+
+    //refreshの範囲が画面外に出ていれば補正
+    if (vramX0 < 0)
+        vramX0 = 0;
+    if (vramY0 < 0)
+        vramY0 = 0;
+    if (vramX1 > control->xSize)
+        vramX1 = control->xSize;
+    if (vramY1 > control->ySize)
+        vramY1 = control->ySize;
+
+    for (h = h0; h <= control->top; h++)
+    {
+        sheet = control->sheets[h];
+        sheetId = sheet - control->sheets0; //sheetの実体のアドレスを引き算してIDとして利用
+        buffer = sheet->buffer;
+
+        //vramX0~vramY1を使って、boxX0~boxY1を計算
+        boxX0 = vramX0 - sheet->vramX0;
+        boxY0 = vramY0 - sheet->vramY0;
+        boxX1 = vramX1 - sheet->vramX0;
+        boxY1 = vramY1 - sheet->vramY0;
+        if (boxX0 < 0)
+            boxX0 = 0;
+        if (boxY0 < 0)
+            boxY0 = 0;
+        if (boxX1 > sheet->boxXSize)
+            boxX1 = sheet->boxXSize;
+        if (boxY1 > sheet->boxYSize)
+            boxY1 = sheet->boxYSize;
+        for (boxY = boxY0; boxY < boxY1; boxY++)
+        {
+            vramY = sheet->vramY0 + boxY;
+            for (boxX = boxX0; boxX < boxX1; boxX++)
+            {
+                vramX = sheet->vramX0 + boxX;
+                if (buffer[boxY * sheet->boxXSize + boxX] != sheet->colorInvisible)
+                {
+                    map[vramY * control->xSize + vramX] = sheetId;
                 }
             }
         }
@@ -196,8 +259,10 @@ void sheet_slide(struct SHEET *sheet, int vramX0, int vramY0)
     sheet->vramY0 = vramY0;
     if (sheet->height >= 0) //表示中の場合
     {
-        sheet_refreshsub(sheet->control, oldVramX0, oldVramY0, oldVramX0 + sheet->boxXSize, oldVramY0 + sheet->boxYSize, 0); //vramの更新
-        sheet_refreshsub(sheet->control, vramX0, vramY0, vramX0 + sheet->boxXSize, vramY0 + sheet->boxYSize, sheet->height);
+        sheet_refresh_map(sheet->control, oldVramX0, oldVramY0, oldVramX0 + sheet->boxXSize, oldVramY0 + sheet->boxYSize, 0);
+        sheet_refresh_map(sheet->control, vramX0, vramY0, vramX0 + sheet->boxXSize, vramY0 + sheet->boxYSize, sheet->height);
+        sheet_refresh_sub(sheet->control, oldVramX0, oldVramY0, oldVramX0 + sheet->boxXSize, oldVramY0 + sheet->boxYSize, 0, sheet->height - 1); //vramの更新
+        sheet_refresh_sub(sheet->control, vramX0, vramY0, vramX0 + sheet->boxXSize, vramY0 + sheet->boxYSize, sheet->height, sheet->height);
     }
     return;
 }
