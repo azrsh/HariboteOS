@@ -106,10 +106,10 @@ void HariMain(void)
                         mouseX = 0;
                     if (mouseY < 0)
                         mouseY = 0;
-                    if (mouseX > bootInfo->screenX - 16)
-                        mouseX = bootInfo->screenX - 16;
-                    if (mouseY > bootInfo->screenY - 16)
-                        mouseY = bootInfo->screenY - 16;
+                    if (mouseX > bootInfo->screenX - 1)
+                        mouseX = bootInfo->screenX - 1; //画面ギリギリをクリックできるようにするための変更だが、このままだとvramの配列外参照するかはみ出した分が次の行に表示される
+                    if (mouseY > bootInfo->screenY - 1)
+                        mouseY = bootInfo->screenY - 1;
 
                     sprintf(s, "(%3d, %3d)", mouseX, mouseY);
                     boxfill8(bufferBackgroud, bootInfo->screenX, COLOR8_008484, 0, 0, 79, 15); //マウスの座標表示を消す
