@@ -8,7 +8,7 @@ void HariMain(void)
     struct BOOTINFO *bootInfo = (struct BOOTINFO *)ADRESS_BOOTINFO; //boot infoの開始アドレス
     char s[40], keyBuffer[32], mouseBuffer[128];
     int mouseX, mouseY, i;
-    unsigned int memoryTotal;
+    unsigned int memoryTotal, count = 0;
     struct MOUSE_DECODE mouseDecode;
     struct MEMORYMANAGER *memoryManager = (struct MEMORYMANAGER *)MEMMAN_ADDR;
     struct SHEETCONTROL *sheetControl;
@@ -40,16 +40,14 @@ void HariMain(void)
     sheetMouse = sheet_allocate(sheetControl);
     sheetWindow = sheet_allocate(sheetControl);
     bufferBackgroud = (unsigned char *)memorymanager_allocate_4k(memoryManager, bootInfo->screenX * bootInfo->screenY);
-    bufferWindow = (unsigned char *)memorymanager_allocate_4k(memoryManager, 160 * 68);
+    bufferWindow = (unsigned char *)memorymanager_allocate_4k(memoryManager, 160 * 52);
     sheet_set_buffer(sheetBackgroud, bufferBackgroud, bootInfo->screenX, bootInfo->screenY, -1); //透明色無し
     sheet_set_buffer(sheetMouse, bufferMouse, 16, 16, 99);                                       //透明色は99番
-    sheet_set_buffer(sheetWindow, bufferWindow, 160, 68, -1);                                    //透明色無し
+    sheet_set_buffer(sheetWindow, bufferWindow, 160, 52, -1);                                    //透明色無し
 
     init_screen(bufferBackgroud, bootInfo->screenX, bootInfo->screenY);
     init_mouse_cursor8(bufferMouse, 99);
-    make_window8(bufferWindow, 160, 68, "window");
-    putfonts8_asc(bufferWindow, 160, 24, 28, COLOR8_000000, "Welcome to");
-    putfonts8_asc(bufferWindow, 160, 24, 44, COLOR8_000000, "  Harbote OS");
+    make_window8(bufferWindow, 160, 52, "counter");
     sheet_slide(sheetBackgroud, 0, 0);
     mouseX = (bootInfo->screenX - 16) / 2; //画面中央に配置
     mouseY = (bootInfo->screenY - 28 - 16) / 2;
@@ -66,10 +64,16 @@ void HariMain(void)
 
     for (;;)
     {
+        count++;
+        sprintf(s, "%010d", count);
+        boxfill8(bufferWindow, 160, COLOR8_C6C6C6, 40, 28, 119, 43);
+        putfonts8_asc(bufferWindow, 160, 40, 28, COLOR8_000000, s);
+        sheet_refresh(sheetWindow, 40, 28, 120, 44);
+
         io_cli();
         if (fifo8_status(&keyFifo) + fifo8_status(&mouseFifo) == 0)
         {
-            io_stihlt();
+            io_sti(); //io_stihlt()をやめた
         }
         else
         {
