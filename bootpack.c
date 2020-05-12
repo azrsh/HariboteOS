@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include "bootpack.h"
 
+void make_window8(unsigned char *buffer, int xSize, int ySize, char *title);
+
 void HariMain(void)
 {
     struct BOOTINFO *bootInfo = (struct BOOTINFO *)ADRESS_BOOTINFO; //boot infoの開始アドレス
@@ -10,8 +12,8 @@ void HariMain(void)
     struct MOUSE_DECODE mouseDecode;
     struct MEMORYMANAGER *memoryManager = (struct MEMORYMANAGER *)MEMMAN_ADDR;
     struct SHEETCONTROL *sheetControl;
-    struct SHEET *sheetBackgroud, *sheetMouse;
-    unsigned char *bufferBackgroud, bufferMouse[256];
+    struct SHEET *sheetBackgroud, *sheetMouse, *sheetWindow;
+    unsigned char *bufferBackgroud, bufferMouse[256], *bufferWindow;
 
     init_gdtidt();
     init_pic();
@@ -36,18 +38,26 @@ void HariMain(void)
     sheetControl = sheetcontrol_init(memoryManager, bootInfo->vram, bootInfo->screenX, bootInfo->screenY);
     sheetBackgroud = sheet_allocate(sheetControl);
     sheetMouse = sheet_allocate(sheetControl);
+    sheetWindow = sheet_allocate(sheetControl);
     bufferBackgroud = (unsigned char *)memorymanager_allocate_4k(memoryManager, bootInfo->screenX * bootInfo->screenY);
+    bufferWindow = (unsigned char *)memorymanager_allocate_4k(memoryManager, 160 * 68);
     sheet_set_buffer(sheetBackgroud, bufferBackgroud, bootInfo->screenX, bootInfo->screenY, -1); //透明色無し
     sheet_set_buffer(sheetMouse, bufferMouse, 16, 16, 99);                                       //透明色は99番
+    sheet_set_buffer(sheetWindow, bufferWindow, 160, 68, -1);                                    //透明色無し
 
     init_screen(bufferBackgroud, bootInfo->screenX, bootInfo->screenY);
     init_mouse_cursor8(bufferMouse, 99);
+    make_window8(bufferWindow, 160, 68, "window");
+    putfonts8_asc(bufferWindow, 160, 24, 28, COLOR8_000000, "Welcome to");
+    putfonts8_asc(bufferWindow, 160, 24, 44, COLOR8_000000, "  Harbote OS");
     sheet_slide(sheetBackgroud, 0, 0);
     mouseX = (bootInfo->screenX - 16) / 2; //画面中央に配置
     mouseY = (bootInfo->screenY - 28 - 16) / 2;
     sheet_slide(sheetMouse, mouseX, mouseY);
+    sheet_slide(sheetWindow, 80, 72);
     sheet_updown(sheetBackgroud, 0);
-    sheet_updown(sheetMouse, 1);
+    sheet_updown(sheetWindow, 1);
+    sheet_updown(sheetMouse, 2);
     sprintf(s, "(%3d, %3d)", mouseX, mouseY);
     putfonts8_asc(bufferBackgroud, bootInfo->screenX, 0, 0, COLOR8_FFFFFF, s);
     sprintf(s, "memory %dMB    free : %dKB", memoryTotal / (1024 * 1024), memorymanager_total(memoryManager) / 1024);
@@ -118,6 +128,63 @@ void HariMain(void)
                     sheet_slide(sheetMouse, mouseX, mouseY); //カーソルの描画、sheet_refresh含む
                 }
             }
+        }
+    }
+}
+
+void make_window8(unsigned char *buffer, int xSize, int ySize, char *title)
+{
+    static char closeButton[14][16] = {
+        "OOOOOOOOOOOOOOO@",
+        "OQQQQQQQQQQQQQ$@",
+        "OQQQQQQQQQQQQQ$@",
+        "OQQQ@@QQQQ@@QQ$@",
+        "OQQQQ@@QQ@@QQQ$@",
+        "OQQQQQ@@@@QQQQ$@",
+        "OQQQQQQ@@QQQQQ$@",
+        "OQQQQQ@@@@QQQQ$@",
+        "OQQQQ@@QQ@@QQQ$@",
+        "OQQQ@@QQQQ@@QQ$@",
+        "OQQQQQQQQQQQQQ$@",
+        "OQQQQQQQQQQQQQ$@",
+        "O$$$$$$$$$$$$$$@",
+        "@@@@@@@@@@@@@@@@"};
+
+    int x, y;
+    char c;
+    boxfill8(buffer, xSize, COLOR8_C6C6C6, 0, 0, xSize - 1, 0);
+    boxfill8(buffer, xSize, COLOR8_FFFFFF, 1, 1, xSize - 2, 1);
+    boxfill8(buffer, xSize, COLOR8_C6C6C6, 0, 0, 0, ySize - 1);
+    boxfill8(buffer, xSize, COLOR8_FFFFFF, 1, 1, 1, ySize - 2);
+    boxfill8(buffer, xSize, COLOR8_848484, xSize - 2, 1, xSize - 2, ySize - 2);
+    boxfill8(buffer, xSize, COLOR8_000000, xSize - 1, 0, xSize - 1, ySize - 1);
+    boxfill8(buffer, xSize, COLOR8_C6C6C6, 2, 2, xSize - 3, ySize - 3);
+    boxfill8(buffer, xSize, COLOR8_000084, 3, 3, xSize - 4, 20);
+    boxfill8(buffer, xSize, COLOR8_848484, 1, ySize - 2, xSize - 2, ySize - 2);
+    boxfill8(buffer, xSize, COLOR8_000000, 0, ySize - 1, xSize - 1, ySize - 1);
+    putfonts8_asc(buffer, xSize, 24, 4, COLOR8_FFFFFF, title);
+    for (y = 0; y < 14; y++)
+    {
+        for (x = 0; x < 16; x++)
+        {
+            c = closeButton[y][x];
+            if (c == '@')
+            {
+                c = COLOR8_000000;
+            }
+            else if (c == '$')
+            {
+                c = COLOR8_848484;
+            }
+            else if (c == 'Q')
+            {
+                c = COLOR8_C6C6C6;
+            }
+            else
+            {
+                c = COLOR8_FFFFFF;
+            }
+            buffer[(5 + y) * xSize + (xSize - 21 + x)] = c;
         }
     }
 }
