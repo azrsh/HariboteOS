@@ -56,8 +56,8 @@ void HariMain(void)
     sheet_slide(sheetMouse, mouseX, mouseY);
     sheet_slide(sheetWindow, 80, 72);
     sheet_updown(sheetBackgroud, 0);
-    sheet_updown(sheetWindow, 1);
-    sheet_updown(sheetMouse, 2);
+    sheet_updown(sheetWindow, 2);
+    sheet_updown(sheetMouse, 1);
     sprintf(s, "(%3d, %3d)", mouseX, mouseY);
     putfonts8_asc(bufferBackgroud, bootInfo->screenX, 0, 0, COLOR8_FFFFFF, s);
     sprintf(s, "memory %dMB    free : %dKB", memoryTotal / (1024 * 1024), memorymanager_total(memoryManager) / 1024);
