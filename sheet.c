@@ -140,6 +140,17 @@ void sheet_refreshsub(struct SHEETCONTROL *control, int vramX0, int vramY0, int 
     int h, boxX, boxY, vramX, vramY, boxX0, boxY0, boxX1, boxY1; //左から処理中の高さ、sheet上のX座標、sheet上のY座標、vram上のX座標、vram上のY座標
     unsigned char *buffer, c, *vram = control->vram;
     struct SHEET *sheet;
+
+    //refreshの範囲が画面外に出ていれば補正
+    if (vramX0 < 0)
+        vramX0 = 0;
+    if (vramY0 < 0)
+        vramY0 = 0;
+    if (vramX1 > control->xSize)
+        vramX1 = control->xSize;
+    if (vramY1 > control->ySize)
+        vramY1 = control->ySize;
+
     for (h = 0; h <= control->top; h++)
     {
         sheet = control->sheets[h];
