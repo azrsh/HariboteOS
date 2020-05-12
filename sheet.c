@@ -2,7 +2,7 @@
 
 #define SHEET_USE 1
 
-void sheet_refreshsub(struct SHEETCONTROL *control, int vramX0, int vramY0, int vramX1, int vramY1);
+void sheet_refreshsub(struct SHEETCONTROL *control, int vramX0, int vramY0, int vramX1, int vramY1, int h0);
 
 struct SHEETCONTROL *sheetcontrol_init(struct MEMORYMANAGER *memoryManager, unsigned char *vram, int xSize, int ySize)
 {
@@ -83,6 +83,7 @@ void sheet_updown(struct SHEET *sheet, int height)
                 control->sheets[h]->height = h;
             }
             control->sheets[height] = sheet;
+            sheet_refreshsub(control, sheet->vramX0, sheet->vramY0, sheet->vramX0 + sheet->boxXSize, sheet->vramY0 + sheet->boxYSize, height + 1);
         }
         else //非表示になるとき
         {
@@ -96,8 +97,8 @@ void sheet_updown(struct SHEET *sheet, int height)
                 }
             }
             control->top--; //表示中の下敷きが一つへるので、一番上の高さが減る
+            sheet_refreshsub(control, sheet->vramX0, sheet->vramY0, sheet->vramX0 + sheet->boxXSize, sheet->vramY0 + sheet->boxYSize, 0);
         }
-        sheet_refreshsub(control, sheet->vramX0, sheet->vramY0, sheet->vramX0 + sheet->boxXSize, sheet->vramY0 + sheet->boxYSize);
     }
     else if (old < height) //以前よりも高くなるとき
     {
@@ -122,7 +123,7 @@ void sheet_updown(struct SHEET *sheet, int height)
             control->sheets[height] = sheet;
             control->top++; //表示中の下敷きが一つ増えるので、一番上の高さが増える
         }
-        sheet_refreshsub(control, sheet->vramX0, sheet->vramY0, sheet->vramX0 + sheet->boxXSize, sheet->vramY0 + sheet->boxYSize);
+        sheet_refreshsub(control, sheet->vramX0, sheet->vramY0, sheet->vramX0 + sheet->boxXSize, sheet->vramY0 + sheet->boxYSize, height);
     }
     return;
 }
@@ -132,12 +133,12 @@ void sheet_refresh(struct SHEET *sheet, int boxX0, int boxY0, int boxX1, int box
     if (sheet->height >= 0) //表示中の場合
     {
         //下敷きに沿って画面を書き直す
-        sheet_refreshsub(sheet->control, sheet->vramX0 + boxX0, sheet->vramY0 + boxY0, sheet->vramX0 + boxX1, sheet->vramY0 + boxY1);
+        sheet_refreshsub(sheet->control, sheet->vramX0 + boxX0, sheet->vramY0 + boxY0, sheet->vramX0 + boxX1, sheet->vramY0 + boxY1, sheet->height);
     }
     return;
 }
 
-void sheet_refreshsub(struct SHEETCONTROL *control, int vramX0, int vramY0, int vramX1, int vramY1)
+void sheet_refreshsub(struct SHEETCONTROL *control, int vramX0, int vramY0, int vramX1, int vramY1, int h0)
 {
     int h, boxX, boxY, vramX, vramY, boxX0, boxY0, boxX1, boxY1; //左から処理中の高さ、sheet上のX座標、sheet上のY座標、vram上のX座標、vram上のY座標
     unsigned char *buffer, c, *vram = control->vram;
@@ -153,7 +154,7 @@ void sheet_refreshsub(struct SHEETCONTROL *control, int vramX0, int vramY0, int 
     if (vramY1 > control->ySize)
         vramY1 = control->ySize;
 
-    for (h = 0; h <= control->top; h++)
+    for (h = h0; h <= control->top; h++)
     {
         sheet = control->sheets[h];
         buffer = sheet->buffer;
@@ -195,8 +196,8 @@ void sheet_slide(struct SHEET *sheet, int vramX0, int vramY0)
     sheet->vramY0 = vramY0;
     if (sheet->height >= 0) //表示中の場合
     {
-        sheet_refreshsub(sheet->control, oldVramX0, oldVramY0, oldVramX0 + sheet->boxXSize, oldVramY0 + sheet->boxYSize); //vramの更新
-        sheet_refreshsub(sheet->control, vramX0, vramY0, vramX0 + sheet->boxXSize, vramY0 + sheet->boxYSize);
+        sheet_refreshsub(sheet->control, oldVramX0, oldVramY0, oldVramX0 + sheet->boxXSize, oldVramY0 + sheet->boxYSize, 0); //vramの更新
+        sheet_refreshsub(sheet->control, vramX0, vramY0, vramX0 + sheet->boxXSize, vramY0 + sheet->boxYSize, sheet->height);
     }
     return;
 }
