@@ -137,26 +137,37 @@ void sheet_refresh(struct SHEETCONTROL *control, struct SHEET *sheet, int boxX0,
 
 void sheet_refreshsub(struct SHEETCONTROL *control, int vramX0, int vramY0, int vramX1, int vramY1)
 {
-    int h, boxX, boxY, vramX, vramY; //左から処理中の高さ、sheet上のX座標、sheet上のY座標、vram上のX座標、vram上のY座標
+    int h, boxX, boxY, vramX, vramY, boxX0, boxY0, boxX1, boxY1; //左から処理中の高さ、sheet上のX座標、sheet上のY座標、vram上のX座標、vram上のY座標
     unsigned char *buffer, c, *vram = control->vram;
     struct SHEET *sheet;
     for (h = 0; h <= control->top; h++)
     {
         sheet = control->sheets[h];
         buffer = sheet->buffer;
-        for (boxY = 0; boxY < sheet->boxYSize; boxY++)
+
+        //vramX0~vramY1を使って、boxX0~boxY1を計算
+        boxX0 = vramX0 - sheet->vramX0;
+        boxY0 = vramY0 - sheet->vramY0;
+        boxX1 = vramX1 - sheet->vramX0;
+        boxY1 = vramY1 - sheet->vramY0;
+        if (boxX0 < 0)
+            boxX0 = 0;
+        if (boxY0 < 0)
+            boxY0 = 0;
+        if (boxX1 > sheet->boxXSize)
+            boxX1 = sheet->boxXSize;
+        if (boxY1 > sheet->boxYSize)
+            boxY1 = sheet->boxYSize;
+        for (boxY = boxY0; boxY < boxY1; boxY++)
         {
             vramY = sheet->vramY0 + boxY;
-            for (boxX = 0; boxX < sheet->boxXSize; boxX++)
+            for (boxX = boxX0; boxX < boxX1; boxX++)
             {
                 vramX = sheet->vramX0 + boxX;
-                if (vramX0 <= vramX && vramX < vramX1 && vramY0 <= vramY && vramY < vramY1)
+                c = buffer[boxY * sheet->boxXSize + boxX];
+                if (c != sheet->colorInvisible)
                 {
-                    c = buffer[boxY * sheet->boxXSize + boxX];
-                    if (c != sheet->colorInvisible)
-                    {
-                        vram[vramY * control->xSize + vramX] = c;
-                    }
+                    vram[vramY * control->xSize + vramX] = c;
                 }
             }
         }
