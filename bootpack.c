@@ -6,7 +6,7 @@ void make_window8(unsigned char *buffer, int xSize, int ySize, char *title);
 void HariMain(void)
 {
     struct BOOTINFO *bootInfo = (struct BOOTINFO *)ADRESS_BOOTINFO; //boot infoの開始アドレス
-    char s[40], mouseCursor[256], keyBuffer[32], mouseBuffer[128];
+    char s[40], keyBuffer[32], mouseBuffer[128];
     int mouseX, mouseY, i;
     unsigned int memoryTotal;
     struct MOUSE_DECODE mouseDecode;
@@ -56,8 +56,8 @@ void HariMain(void)
     sheet_slide(sheetMouse, mouseX, mouseY);
     sheet_slide(sheetWindow, 80, 72);
     sheet_updown(sheetBackgroud, 0);
-    sheet_updown(sheetWindow, 2);
-    sheet_updown(sheetMouse, 1);
+    sheet_updown(sheetWindow, 1);
+    sheet_updown(sheetMouse, 2);
     sprintf(s, "(%3d, %3d)", mouseX, mouseY);
     putfonts8_asc(bufferBackgroud, bootInfo->screenX, 0, 0, COLOR8_FFFFFF, s);
     sprintf(s, "memory %dMB    free : %dKB", memoryTotal / (1024 * 1024), memorymanager_total(memoryManager) / 1024);
