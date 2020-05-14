@@ -107,6 +107,7 @@ void inthandler27(int *esp);
 
 //keyboard.c
 void inthandler2c(int *esp);
+void wait_KBC_sendready(void);
 void init_keyboard(void);
 extern struct FIFO8 keyFifo;
 #define PORT_KEYDAT 0x0060
