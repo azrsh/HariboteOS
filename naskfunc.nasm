@@ -86,29 +86,29 @@ _io_store_eflags:                   ; void io_store_eflags(int data);
     POPFD                           ; pop eflagsの意味
     RET
 
-_load_gdtr                          ; void load_gdtr(int limit,int adress);
+_load_gdtr:                         ; void load_gdtr(int limit,int adress);
     MOV     AX, [ESP+4]             ; limit
     MOV     [ESP+6], AX
     LGDT    [ESP+6]
     RET
 
-_load_idtr                          ; void load_idtr(int limit,int adress);
+_load_idtr:                         ; void load_idtr(int limit,int adress);
     MOV     AX, [ESP+4]             ; limit
     MOV     [ESP+6] ,AX
     LIDT    [ESP+6]
     RET
 
-_load_cr0
+_load_cr0:
     MOV     EAX, CR0                ; int load_cr0();
     RET
 
-_store_cr0                          ; void store_cr0(int cr0);
+_store_cr0:                         ; void store_cr0(int cr0);
     MOV     EAX, [ESP+4]            ; cr0
     MOV     CR0, EAX
     RET
 
 ; レジスタの値をいったんFILO型Stackに保存し、割り込み処理の後CPUを元の状態に復帰させる
-_asm_inthandler20
+_asm_inthandler20:
     PUSH    ES
     PUSH    DS
     PUSHAD
@@ -124,7 +124,7 @@ _asm_inthandler20
     POP     ES
     IRETD
 
-_asm_inthandler21
+_asm_inthandler21:
     PUSH    ES
     PUSH    DS
     PUSHAD
@@ -140,7 +140,7 @@ _asm_inthandler21
     POP     ES
     IRETD
 
-_asm_inthandler27
+_asm_inthandler27:
     PUSH    ES
     PUSH    DS
     PUSHAD
@@ -156,7 +156,7 @@ _asm_inthandler27
     POP     ES
     IRETD
 
-_asm_inthandler2c
+_asm_inthandler2c:
     PUSH    ES
     PUSH    DS
     PUSHAD
