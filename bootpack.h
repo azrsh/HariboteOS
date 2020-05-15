@@ -178,7 +178,7 @@ struct TIMER
 };
 struct TIMERCONTROL
 {
-    unsigned int count;
+    unsigned int count, next;
     struct TIMER timers[MAX_TIMER];
 };
 extern struct TIMERCONTROL timerControl;

@@ -17,6 +17,7 @@ void init_pit(void)
     io_out8(PIT_COUNT0, 0x9c);  //PITの設定値の下位8bit
     io_out8(PIT_COUNT0, 0x2e);  //PITの設定値の上位8bit(併せて0x2e9c=119318で、タイマ割込みは100Hzになる)
     timerControl.count = 0;
+    timerControl.next = 0xffffffff; //最初は作動中のタイマがないのでINT_MAXを代入
     for (i = 0; i < MAX_TIMER; i++)
     {
         timerControl.timers[i].flags = TIMER_FLAGS_FREE;
@@ -55,6 +56,11 @@ void timer_set_time(struct TIMER *timer, unsigned int timeout)
 {
     timer->timeout = timeout + timerControl.count;
     timer->flags = TIMER_FLAGS_USING;
+    //次回の時刻を更新
+    if (timerControl.next > timer->timeout)
+    {
+        timerControl.next = timer->timeout;
+    }
     return;
 }
 
@@ -64,14 +70,28 @@ void inthandler20(int *esp)
     int i;
     io_out8(PIC0_OCW2, 0x60); //IRQ-00受付完了をPICに通知
     timerControl.count++;
+    if (timerControl.next > timerControl.count)
+    {
+        return; //まだ次の時刻に達していないので戻る
+    }
+    timerControl.next = 0xffffffffffff;
     for (i = 0; i < MAX_TIMER; i++)
     {
         if (timerControl.timers[i].flags == TIMER_FLAGS_USING) //タイムアウトが設定されているとき
         {
             if (timerControl.timers[i].timeout <= timerControl.count)
             {
+                //タイムアウト
                 timerControl.timers[i].flags = TIMER_FLAGS_ALLOCATED;
                 fifo8_put(timerControl.timers[i].fifo, timerControl.timers[i].data);
+            }
+            else
+            {
+                //まだタイムアウトではないのでnextを更新
+                if (timerControl.next > timerControl.timers[i].timeout)
+                {
+                    timerControl.next = timerControl.timers[i].timeout;
+                }
             }
         }
     }
