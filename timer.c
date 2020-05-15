@@ -53,11 +53,12 @@ void timer_init(struct TIMER *timer, struct FIFO8 *fifo, unsigned char data)
 
 void timer_set_time(struct TIMER *timer, unsigned int timeout)
 {
-    timer->timeout = timeout;
+    timer->timeout = timeout + timerControl.count;
     timer->flags = TIMER_FLAGS_USING;
     return;
 }
 
+//この方式では、count = 0xffffffff以降が設定できない
 void inthandler20(int *esp)
 {
     int i;
@@ -67,8 +68,7 @@ void inthandler20(int *esp)
     {
         if (timerControl.timers[i].flags == TIMER_FLAGS_USING) //タイムアウトが設定されているとき
         {
-            timerControl.timers[i].timeout--;
-            if (timerControl.timers[i].timeout == 0)
+            if (timerControl.timers[i].timeout <= timerControl.count)
             {
                 timerControl.timers[i].flags = TIMER_FLAGS_ALLOCATED;
                 fifo8_put(timerControl.timers[i].fifo, timerControl.timers[i].data);
