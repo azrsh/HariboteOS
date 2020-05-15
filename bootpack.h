@@ -172,7 +172,11 @@ void sheet_free(struct SHEET *sheet);
 struct TIMERCONTROL
 {
     unsigned int count;
+    unsigned int timeout;
+    struct FIFO8 *fifo;
+    unsigned char data;
 };
 extern struct TIMERCONTROL timerControl;
 void init_pit(void);
 void inthandler20(int *esp);
+void set_timer(unsigned int timeout, struct FIFO8 *fifo, unsigned char data);

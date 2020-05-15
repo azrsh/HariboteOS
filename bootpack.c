@@ -6,7 +6,8 @@ void make_window8(unsigned char *buffer, int xSize, int ySize, char *title);
 void HariMain(void)
 {
     struct BOOTINFO *bootInfo = (struct BOOTINFO *)ADRESS_BOOTINFO; //boot infoの開始アドレス
-    char s[40], keyBuffer[32], mouseBuffer[128];
+    struct FIFO8 timerFifo;
+    char s[40], keyBuffer[32], mouseBuffer[128], timerBuffer[8];
     int mouseX, mouseY, i;
     unsigned int memoryTotal, count = 0;
     struct MOUSE_DECODE mouseDecode;
@@ -24,6 +25,9 @@ void HariMain(void)
     init_pit();
     io_out8(PIC0_IMR, 0xf8); //PITとPIC1とキーボードを許可(11111000)
     io_out8(PIC1_IMR, 0xef); //マウスを許可(11101111)
+
+    fifo8_init(&timerFifo, 8, timerBuffer);
+    set_timer(1000, &timerFifo, 1);
 
     init_keyboard();
     enable_mouse(&mouseDecode);
@@ -70,7 +74,7 @@ void HariMain(void)
         sheet_refresh(sheetWindow, 40, 28, 120, 44);
 
         io_cli();
-        if (fifo8_status(&keyFifo) + fifo8_status(&mouseFifo) == 0)
+        if (fifo8_status(&keyFifo) + fifo8_status(&mouseFifo) + fifo8_status(&timerFifo) == 0)
         {
             io_sti(); //io_stihlt()をやめた
         }
@@ -130,6 +134,13 @@ void HariMain(void)
                     sheet_refresh(sheetBackgroud, 0, 0, 80, 16);
                     sheet_slide(sheetMouse, mouseX, mouseY); //カーソルの描画、sheet_refresh含む
                 }
+            }
+            else if (fifo8_status(&timerFifo) != 0)
+            {
+                i = fifo8_get(&timerFifo); //とりあえず読み込む
+                io_sti();
+                putfonts8_asc(bufferBackgroud, bootInfo->screenX, 0, 64, COLOR8_FFFFFF, "10[sec]"); //マウスの座標表示の描画
+                sheet_refresh(sheetBackgroud, 0, 64, 56, 80);
             }
         }
     }
