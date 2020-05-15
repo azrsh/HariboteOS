@@ -24,8 +24,9 @@ void init_gdtidt(void)
     //第三引数は所属セグメントを表す。下位3ビットは0である必要があるのでビットシフト
     //なお、第二セグメントはbootpack.hrbを内包するセグメント
     //第四引数はIDTに対する属性設定。割り込み処理用の有効な設定であることを表す
-    set_gate_descriptor(idt + 0x21, (int) asm_inthandler21, 2 << 3, AR_INTGATE32);
-    set_gate_descriptor(idt + 0x2c, (int) asm_inthandler2c, 2 << 3, AR_INTGATE32);
+    set_gate_descriptor(idt + 0x20, (int)asm_inthandler20, 2 << 3, AR_INTGATE32);
+    set_gate_descriptor(idt + 0x21, (int)asm_inthandler21, 2 << 3, AR_INTGATE32);
+    set_gate_descriptor(idt + 0x2c, (int)asm_inthandler2c, 2 << 3, AR_INTGATE32);
 
     return;
 }

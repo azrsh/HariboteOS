@@ -15,9 +15,9 @@
         GLOBAL  _io_load_eflags, _io_store_eflags
         GLOBAL  _load_gdtr, _load_idtr
         GLOBAL  _load_cr0, _store_cr0
-        GLOBAL  _asm_inthandler21, _asm_inthandler27, _asm_inthandler2c
+        GLOBAL  _asm_inthandler20, _asm_inthandler21, _asm_inthandler27, _asm_inthandler2c
         GLOBAL  _memory_test_sub
-        EXTERN  _inthandler21, _inthandler27, _inthandler2c
+        EXTERN  _inthandler20, _inthandler21, _inthandler27, _inthandler2c
 
 ; 以下は実際の関数
 
@@ -108,6 +108,22 @@ _store_cr0                          ; void store_cr0(int cr0);
     RET
 
 ; レジスタの値をいったんFILO型Stackに保存し、割り込み処理の後CPUを元の状態に復帰させる
+_asm_inthandler20
+    PUSH    ES
+    PUSH    DS
+    PUSHAD
+    MOV     EAX, ESP
+    PUSH    EAX
+    MOV     AX, SS
+    MOV     DS, AX
+    MOV     ES, AX
+    CALL    _inthandler20
+    POP     EAX
+    POPAD
+    POP     DS
+    POP     ES
+    IRETD
+
 _asm_inthandler21
     PUSH    ES
     PUSH    DS

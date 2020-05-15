@@ -21,8 +21,8 @@ void HariMain(void)
 
     fifo8_init(&keyFifo, 32, keyBuffer); //fofoバッファを初期化
     fifo8_init(&mouseFifo, 128, mouseBuffer);
-
-    io_out8(PIC0_IMR, 0xf9); //PIC1とキーボードを許可(11111001)
+    init_pit();
+    io_out8(PIC0_IMR, 0xf8); //PITとPIC1とキーボードを許可(11111000)
     io_out8(PIC1_IMR, 0xef); //マウスを許可(11101111)
 
     init_keyboard();

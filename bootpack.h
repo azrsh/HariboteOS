@@ -20,6 +20,7 @@ void load_gdtr(int limit, int adress);
 void load_idtr(int limit, int adress);
 int load_cr0(void);
 void store_cr0(int cr0);
+void asm_inthandler20(void);
 void asm_inthandler21(void);
 void asm_inthandler27(void);
 void asm_inthandler2c(void);
@@ -166,3 +167,7 @@ void sheet_updown(struct SHEET *sheet, int height);
 void sheet_refresh(struct SHEET *sheet, int box0, int boxY0, int boxX1, int boxY1);
 void sheet_slide(struct SHEET *sheet, int vramX0, int vramY0);
 void sheet_free(struct SHEET *sheet);
+
+//timer.c
+void init_pit(void);
+void inthandler20(int *esp);
