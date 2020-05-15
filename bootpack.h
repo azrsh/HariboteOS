@@ -169,5 +169,10 @@ void sheet_slide(struct SHEET *sheet, int vramX0, int vramY0);
 void sheet_free(struct SHEET *sheet);
 
 //timer.c
+struct TIMERCONTROL
+{
+    unsigned int count;
+};
+extern struct TIMERCONTROL timerControl;
 void init_pit(void);
 void inthandler20(int *esp);
