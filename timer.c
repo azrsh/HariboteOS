@@ -18,9 +18,10 @@ void init_pit(void)
     io_out8(PIT_COUNT0, 0x2e);  //PITの設定値の上位8bit(併せて0x2e9c=119318で、タイマ割込みは100Hzになる)
     timerControl.count = 0;
     timerControl.next = 0xffffffff; //最初は作動中のタイマがないのでINT_MAXを代入
+    timerControl.using = 0;         //最初は作動中のタイマがないので0を代入
     for (i = 0; i < MAX_TIMER; i++)
     {
-        timerControl.timers[i].flags = TIMER_FLAGS_FREE;
+        timerControl.timers0[i].flags = TIMER_FLAGS_FREE;
     }
 
     return;
@@ -31,10 +32,10 @@ struct TIMER *timer_allocate(void)
     int i;
     for (i = 0; i < MAX_TIMER; i++)
     {
-        if (timerControl.timers[i].flags == TIMER_FLAGS_FREE)
+        if (timerControl.timers0[i].flags == TIMER_FLAGS_FREE)
         {
-            timerControl.timers[i].flags = TIMER_FLAGS_ALLOCATED;
-            return &timerControl.timers[i];
+            timerControl.timers0[i].flags = TIMER_FLAGS_ALLOCATED;
+            return &timerControl.timers0[i];
         }
     }
     return 0; //見つからなかった
@@ -54,20 +55,38 @@ void timer_init(struct TIMER *timer, struct FIFO8 *fifo, unsigned char data)
 
 void timer_set_time(struct TIMER *timer, unsigned int timeout)
 {
+    int eflags, i, j;
     timer->timeout = timeout + timerControl.count;
     timer->flags = TIMER_FLAGS_USING;
-    //次回の時刻を更新
-    if (timerControl.next > timer->timeout)
+
+    eflags = io_load_eflags();
+    io_cli();
+
+    for (i = 0; i < timerControl.using; i++)
     {
-        timerControl.next = timer->timeout;
+        if (timerControl.timers[i]->timeout >= timer->timeout)
+        {
+            break;
+        }
     }
+    //後ろにある要素を一つ後ろへずらす
+    for (j = timerControl.using; j > i; j--)
+    {
+        timerControl.timers[j] = timerControl.timers[j - 1];
+    }
+    timerControl.using ++;
+
+    timerControl.timers[i] = timer;
+    timerControl.next = timerControl.timers[0]->timeout;
+
+    io_store_eflags(eflags);
     return;
 }
 
 //この方式では、count = 0xffffffff以降が設定できない
 void inthandler20(int *esp)
 {
-    int i;
+    int i, j;
     io_out8(PIC0_OCW2, 0x60); //IRQ-00受付完了をPICに通知
     timerControl.count++;
     if (timerControl.next > timerControl.count)
@@ -75,25 +94,34 @@ void inthandler20(int *esp)
         return; //まだ次の時刻に達していないので戻る
     }
     timerControl.next = 0xffffffffffff;
-    for (i = 0; i < MAX_TIMER; i++)
+    for (i = 0; i < timerControl.using; i++)
     {
-        if (timerControl.timers[i].flags == TIMER_FLAGS_USING) //タイムアウトが設定されているとき
+        //タイマはすべて作動中のはずなので、flagsは確認しない
+        if (timerControl.timers[i]->timeout > timerControl.count)
         {
-            if (timerControl.timers[i].timeout <= timerControl.count)
-            {
-                //タイムアウト
-                timerControl.timers[i].flags = TIMER_FLAGS_ALLOCATED;
-                fifo8_put(timerControl.timers[i].fifo, timerControl.timers[i].data);
-            }
-            else
-            {
-                //まだタイムアウトではないのでnextを更新
-                if (timerControl.next > timerControl.timers[i].timeout)
-                {
-                    timerControl.next = timerControl.timers[i].timeout;
-                }
-            }
+            break;
         }
+        //タイムアウト
+        timerControl.timers[i]->flags = TIMER_FLAGS_ALLOCATED;
+        fifo8_put(timerControl.timers[i]->fifo, timerControl.timers[i]->data);
     }
+
+    //i個のタイマがタイムアウト
+    timerControl.using -= i;
+    //残りをずらす
+    for (j = 0; j < timerControl.using; j++)
+    {
+        timerControl.timers[j] = timerControl.timers[i + j];
+    }
+    //最も近いtimmeoutにnextを更新
+    if (timerControl.using > 0)
+    {
+        timerControl.next = timerControl.timers[i]->timeout;
+    }
+    else
+    {
+        timerControl.next = 0xffffffff;
+    }
+
     return;
 }

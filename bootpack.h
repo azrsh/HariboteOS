@@ -178,8 +178,9 @@ struct TIMER
 };
 struct TIMERCONTROL
 {
-    unsigned int count, next;
-    struct TIMER timers[MAX_TIMER];
+    unsigned int count, next, using;
+    struct TIMER *timers[MAX_TIMER];
+    struct TIMER timers0[MAX_TIMER];
 };
 extern struct TIMERCONTROL timerControl;
 void init_pit(void);
