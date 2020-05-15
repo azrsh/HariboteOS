@@ -6,10 +6,11 @@ void make_window8(unsigned char *buffer, int xSize, int ySize, char *title);
 void HariMain(void)
 {
     struct BOOTINFO *bootInfo = (struct BOOTINFO *)ADRESS_BOOTINFO; //boot infoの開始アドレス
-    struct FIFO8 timerFifo;
-    char s[40], keyBuffer[32], mouseBuffer[128], timerBuffer[8];
+    struct FIFO8 timer1Fifo, timer2Fifo, timer3Fifo;
+    char s[40], keyBuffer[32], mouseBuffer[128], timer1Buffer[8], timer2Buffer[8], timer3Buffer[8];
+    struct TIMER *timer1, *timer2, *timer3;
     int mouseX, mouseY, i;
-    unsigned int memoryTotal, count = 0;
+    unsigned int memoryTotal;
     struct MOUSE_DECODE mouseDecode;
     struct MEMORYMANAGER *memoryManager = (struct MEMORYMANAGER *)MEMMAN_ADDR;
     struct SHEETCONTROL *sheetControl;
@@ -26,8 +27,18 @@ void HariMain(void)
     io_out8(PIC0_IMR, 0xf8); //PITとPIC1とキーボードを許可(11111000)
     io_out8(PIC1_IMR, 0xef); //マウスを許可(11101111)
 
-    fifo8_init(&timerFifo, 8, timerBuffer);
-    set_timer(1000, &timerFifo, 1);
+    fifo8_init(&timer1Fifo, 8, timer1Buffer); //1000/100Hz = 10秒
+    timer1 = timer_allocate();
+    timer_init(timer1, &timer1Fifo, 1);
+    timer_set_time(timer1, 1000);
+    fifo8_init(&timer2Fifo, 8, timer2Buffer); //300/100Hz = 3秒
+    timer2 = timer_allocate();
+    timer_init(timer2, &timer2Fifo, 1);
+    timer_set_time(timer2, 300);
+    fifo8_init(&timer3Fifo, 8, timer3Buffer); //50/100Hz = 0.5秒
+    timer3 = timer_allocate();
+    timer_init(timer3, &timer3Fifo, 1);
+    timer_set_time(timer3, 50);
 
     init_keyboard();
     enable_mouse(&mouseDecode);
@@ -74,7 +85,7 @@ void HariMain(void)
         sheet_refresh(sheetWindow, 40, 28, 120, 44);
 
         io_cli();
-        if (fifo8_status(&keyFifo) + fifo8_status(&mouseFifo) + fifo8_status(&timerFifo) == 0)
+        if (fifo8_status(&keyFifo) + fifo8_status(&mouseFifo) + fifo8_status(&timer1Fifo) + fifo8_status(&timer2Fifo) + fifo8_status(&timer3Fifo) == 0)
         {
             io_sti(); //io_stihlt()をやめた
         }
@@ -135,12 +146,38 @@ void HariMain(void)
                     sheet_slide(sheetMouse, mouseX, mouseY); //カーソルの描画、sheet_refresh含む
                 }
             }
-            else if (fifo8_status(&timerFifo) != 0)
+            else if (fifo8_status(&timer1Fifo) != 0)
             {
-                i = fifo8_get(&timerFifo); //とりあえず読み込む
+                i = fifo8_get(&timer1Fifo); //とりあえず読み込む
                 io_sti();
-                putfonts8_asc(bufferBackgroud, bootInfo->screenX, 0, 64, COLOR8_FFFFFF, "10[sec]"); //マウスの座標表示の描画
+                putfonts8_asc(bufferBackgroud, bootInfo->screenX, 0, 64, COLOR8_FFFFFF, "10[sec]");
                 sheet_refresh(sheetBackgroud, 0, 64, 56, 80);
+            }
+            else if (fifo8_status(&timer2Fifo) != 0)
+            {
+                i = fifo8_get(&timer2Fifo); //とりあえず読み込む
+                io_sti();
+                putfonts8_asc(bufferBackgroud, bootInfo->screenX, 0, 80, COLOR8_FFFFFF, "3[sec]");
+                sheet_refresh(sheetBackgroud, 0, 80, 56, 96);
+            }
+            else if (fifo8_status(&timer3Fifo) != 0)
+            {
+                i = fifo8_get(&timer3Fifo); //とりあえず読み込む
+                io_sti();
+                if (i != 0)
+                {
+                    //白い矩形を描画して次のdataを0に
+                    timer_init(timer3, &timer3Fifo, 0);
+                    boxfill8(bufferBackgroud, bootInfo->screenX, COLOR8_FFFFFF, 8, 96, 15, 111);
+                }
+                else
+                {
+                    //背景と同色の矩形を描画して次のdataを1に
+                    timer_init(timer3, &timer3Fifo, 1);
+                    boxfill8(bufferBackgroud, bootInfo->screenX, COLOR8_008484, 8, 96, 16, 112);
+                }
+                timer_set_time(timer3, 50);
+                sheet_refresh(sheetBackgroud, 8, 96, 16, 112);
             }
         }
     }

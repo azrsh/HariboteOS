@@ -4,41 +4,76 @@
 #define PIT_CONTROL 0x0043
 #define PIT_COUNT0 0x0040
 
+#define TIMER_FLAGS_FREE 0      //タイマが空いている状態
+#define TIMER_FLAGS_ALLOCATED 1 //タイマを確保した状態
+#define TIMER_FLAGS_USING 2     //タイマを使用中の状態
+
 struct TIMERCONTROL timerControl;
 
 void init_pit(void)
 {
+    int i;
     io_out8(PIT_CONTROL, 0x34); //PITの設定変更コマンド
     io_out8(PIT_COUNT0, 0x9c);  //PITの設定値の下位8bit
     io_out8(PIT_COUNT0, 0x2e);  //PITの設定値の上位8bit(併せて0x2e9c=119318で、タイマ割込みは100Hzになる)
     timerControl.count = 0;
-    timerControl.timeout = 0;
+    for (i = 0; i < MAX_TIMER; i++)
+    {
+        timerControl.timers[i].flags = TIMER_FLAGS_FREE;
+    }
+
+    return;
+}
+
+struct TIMER *timer_allocate(void)
+{
+    int i;
+    for (i = 0; i < MAX_TIMER; i++)
+    {
+        if (timerControl.timers[i].flags == TIMER_FLAGS_FREE)
+        {
+            timerControl.timers[i].flags = TIMER_FLAGS_ALLOCATED;
+            return &timerControl.timers[i];
+        }
+    }
+    return 0; //見つからなかった
+}
+
+void timer_free(struct TIMER *timer)
+{
+    timer->flags = TIMER_FLAGS_FREE;
+}
+
+void timer_init(struct TIMER *timer, struct FIFO8 *fifo, unsigned char data)
+{
+    timer->fifo = fifo;
+    timer->data = data;
+    return;
+}
+
+void timer_set_time(struct TIMER *timer, unsigned int timeout)
+{
+    timer->timeout = timeout;
+    timer->flags = TIMER_FLAGS_USING;
     return;
 }
 
 void inthandler20(int *esp)
 {
+    int i;
     io_out8(PIC0_OCW2, 0x60); //IRQ-00受付完了をPICに通知
     timerControl.count++;
-    if (timerControl.timeout > 0) //タイムアウトが設定されているとき
+    for (i = 0; i < MAX_TIMER; i++)
     {
-        timerControl.timeout--;
-        if (timerControl.timeout == 0)
+        if (timerControl.timers[i].flags == TIMER_FLAGS_USING) //タイムアウトが設定されているとき
         {
-            fifo8_put(timerControl.fifo, timerControl.data);
+            timerControl.timers[i].timeout--;
+            if (timerControl.timers[i].timeout == 0)
+            {
+                timerControl.timers[i].flags = TIMER_FLAGS_ALLOCATED;
+                fifo8_put(timerControl.timers[i].fifo, timerControl.timers[i].data);
+            }
         }
     }
-    return;
-}
-
-void set_timer(unsigned int timeout, struct FIFO8 *fifo, unsigned char data)
-{
-    int eflags;
-    eflags = io_load_eflags(); //割込み禁止
-    io_cli();
-    timerControl.timeout = timeout; //タイマの設定
-    timerControl.fifo = fifo;
-    timerControl.data = data;
-    io_store_eflags(eflags); //割込み再開
     return;
 }

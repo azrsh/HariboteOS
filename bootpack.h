@@ -169,14 +169,22 @@ void sheet_slide(struct SHEET *sheet, int vramX0, int vramY0);
 void sheet_free(struct SHEET *sheet);
 
 //timer.c
-struct TIMERCONTROL
+#define MAX_TIMER 500
+struct TIMER
 {
-    unsigned int count;
-    unsigned int timeout;
+    unsigned int timeout, flags;
     struct FIFO8 *fifo;
     unsigned char data;
 };
+struct TIMERCONTROL
+{
+    unsigned int count;
+    struct TIMER timers[MAX_TIMER];
+};
 extern struct TIMERCONTROL timerControl;
 void init_pit(void);
+struct TIMER *timer_allocate(void);
+void timer_free(struct TIMER *timer);
+void timer_init(struct TIMER *timer, struct FIFO8 *fifo, unsigned char data);
+void timer_set_time(struct TIMER *timer, unsigned int timeout);
 void inthandler20(int *esp);
-void set_timer(unsigned int timeout, struct FIFO8 *fifo, unsigned char data);
