@@ -10,7 +10,7 @@ void HariMain(void)
     struct FIFO8 timerFifo;
     char s[40], keyBuffer[32], mouseBuffer[128], timerBuffer[8];
     struct TIMER *timer1, *timer2, *timer3;
-    int mouseX, mouseY, i;
+    int mouseX, mouseY, i, count = 0;
     unsigned int memoryTotal;
     struct MOUSE_DECODE mouseDecode;
     struct MEMORYMANAGER *memoryManager = (struct MEMORYMANAGER *)MEMMAN_ADDR;
@@ -77,8 +77,7 @@ void HariMain(void)
 
     for (;;)
     {
-        sprintf(s, "%010d", timerControl.count);
-        putfont8_asc_sheet(sheetWindow, 40, 28, COLOR8_000000, COLOR8_C6C6C6, s, 10);
+        count++;
 
         io_cli();
         if (fifo8_status(&keyFifo) + fifo8_status(&mouseFifo) + fifo8_status(&timerFifo) == 0)
@@ -143,10 +142,14 @@ void HariMain(void)
                 if (i == 10)
                 {
                     putfont8_asc_sheet(sheetBackgroud, 0, 64, COLOR8_FFFFFF, COLOR8_008484, "10[sec]", 7);
+
+                    sprintf(s, "%010d", count);
+                    putfont8_asc_sheet(sheetWindow, 40, 28, COLOR8_000000, COLOR8_C6C6C6, s, 10);
                 }
                 else if (i == 3)
                 {
                     putfont8_asc_sheet(sheetBackgroud, 0, 80, COLOR8_FFFFFF, COLOR8_008484, "3[sec]", 6);
+                    count = 0; //測定開始(初期化にかかる時間は微妙な条件で変化するのでここから開始)
                 }
                 else
                 {
