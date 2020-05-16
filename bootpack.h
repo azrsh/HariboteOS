@@ -180,14 +180,15 @@ void sheet_free(struct SHEET *sheet);
 #define MAX_TIMER 500
 struct TIMER
 {
+    struct TIMER *next;
     unsigned int timeout, flags;
     struct FIFO32 *fifo;
     int data;
 };
 struct TIMERCONTROL
 {
-    unsigned int count, next, using;
-    struct TIMER *timers[MAX_TIMER];
+    unsigned int count, next_time, using;
+    struct TIMER *t0;
     struct TIMER timers0[MAX_TIMER];
 };
 extern struct TIMERCONTROL timerControl;
