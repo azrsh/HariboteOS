@@ -7,8 +7,8 @@ void putfont8_asc_sheet(struct SHEET *sheet, int x, int y, int color, int backgr
 void HariMain(void)
 {
     struct BOOTINFO *bootInfo = (struct BOOTINFO *)ADRESS_BOOTINFO; //boot infoの開始アドレス
-    struct FIFO8 timer1Fifo, timer2Fifo, timer3Fifo;
-    char s[40], keyBuffer[32], mouseBuffer[128], timer1Buffer[8], timer2Buffer[8], timer3Buffer[8];
+    struct FIFO8 timerFifo;
+    char s[40], keyBuffer[32], mouseBuffer[128], timerBuffer[8];
     struct TIMER *timer1, *timer2, *timer3;
     int mouseX, mouseY, i;
     unsigned int memoryTotal;
@@ -28,17 +28,15 @@ void HariMain(void)
     io_out8(PIC0_IMR, 0xf8); //PITとPIC1とキーボードを許可(11111000)
     io_out8(PIC1_IMR, 0xef); //マウスを許可(11101111)
 
-    fifo8_init(&timer1Fifo, 8, timer1Buffer); //1000/100Hz = 10秒
-    timer1 = timer_allocate();
-    timer_init(timer1, &timer1Fifo, 1);
+    fifo8_init(&timerFifo, 8, timerBuffer);
+    timer1 = timer_allocate(); //1000/100Hz = 10秒
+    timer_init(timer1, &timerFifo, 10);
     timer_set_time(timer1, 1000);
-    fifo8_init(&timer2Fifo, 8, timer2Buffer); //300/100Hz = 3秒
-    timer2 = timer_allocate();
-    timer_init(timer2, &timer2Fifo, 1);
+    timer2 = timer_allocate(); //300/100Hz = 3秒
+    timer_init(timer2, &timerFifo, 3);
     timer_set_time(timer2, 300);
-    fifo8_init(&timer3Fifo, 8, timer3Buffer); //50/100Hz = 0.5秒
-    timer3 = timer_allocate();
-    timer_init(timer3, &timer3Fifo, 1);
+    timer3 = timer_allocate(); //50/100Hz = 0.5秒
+    timer_init(timer3, &timerFifo, 1);
     timer_set_time(timer3, 50);
 
     init_keyboard();
@@ -83,7 +81,7 @@ void HariMain(void)
         putfont8_asc_sheet(sheetWindow, 40, 28, COLOR8_000000, COLOR8_C6C6C6, s, 10);
 
         io_cli();
-        if (fifo8_status(&keyFifo) + fifo8_status(&mouseFifo) + fifo8_status(&timer1Fifo) + fifo8_status(&timer2Fifo) + fifo8_status(&timer3Fifo) == 0)
+        if (fifo8_status(&keyFifo) + fifo8_status(&mouseFifo) + fifo8_status(&timerFifo) == 0)
         {
             io_sti(); //io_stihlt()をやめた
         }
@@ -138,36 +136,35 @@ void HariMain(void)
                     sheet_slide(sheetMouse, mouseX, mouseY); //カーソルの描画、sheet_refresh含む
                 }
             }
-            else if (fifo8_status(&timer1Fifo) != 0)
+            else if (fifo8_status(&timerFifo) != 0)
             {
-                i = fifo8_get(&timer1Fifo); //とりあえず読み込む
+                i = fifo8_get(&timerFifo); //とりあえず読み込む
                 io_sti();
-                putfont8_asc_sheet(sheetBackgroud, 0, 64, COLOR8_FFFFFF, COLOR8_008484, "10[sec]", 7);
-            }
-            else if (fifo8_status(&timer2Fifo) != 0)
-            {
-                i = fifo8_get(&timer2Fifo); //とりあえず読み込む
-                io_sti();
-                putfont8_asc_sheet(sheetBackgroud, 0, 80, COLOR8_FFFFFF, COLOR8_008484, "3[sec]", 6);
-            }
-            else if (fifo8_status(&timer3Fifo) != 0)
-            {
-                i = fifo8_get(&timer3Fifo); //とりあえず読み込む
-                io_sti();
-                if (i != 0)
+                if (i == 10)
                 {
-                    //白い矩形を描画して次のdataを0に
-                    timer_init(timer3, &timer3Fifo, 0);
-                    boxfill8(bufferBackgroud, bootInfo->screenX, COLOR8_FFFFFF, 8, 96, 15, 111);
+                    putfont8_asc_sheet(sheetBackgroud, 0, 64, COLOR8_FFFFFF, COLOR8_008484, "10[sec]", 7);
+                }
+                else if (i == 3)
+                {
+                    putfont8_asc_sheet(sheetBackgroud, 0, 80, COLOR8_FFFFFF, COLOR8_008484, "3[sec]", 6);
                 }
                 else
                 {
-                    //背景と同色の矩形を描画して次のdataを1に
-                    timer_init(timer3, &timer3Fifo, 1);
-                    boxfill8(bufferBackgroud, bootInfo->screenX, COLOR8_008484, 8, 96, 16, 112);
+                    if (i != 0)
+                    {
+                        //白い矩形を描画して次のdataを0に
+                        timer_init(timer3, &timerFifo, 0);
+                        boxfill8(bufferBackgroud, bootInfo->screenX, COLOR8_FFFFFF, 8, 96, 15, 111);
+                    }
+                    else
+                    {
+                        //背景と同色の矩形を描画して次のdataを1に
+                        timer_init(timer3, &timerFifo, 1);
+                        boxfill8(bufferBackgroud, bootInfo->screenX, COLOR8_008484, 8, 96, 16, 112);
+                    }
+                    timer_set_time(timer3, 50);
+                    sheet_refresh(sheetBackgroud, 8, 96, 16, 112);
                 }
-                timer_set_time(timer3, 50);
-                sheet_refresh(sheetBackgroud, 8, 96, 16, 112);
             }
         }
     }
