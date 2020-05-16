@@ -1,15 +1,16 @@
 #include "bootpack.h"
 
-struct FIFO8 mouseFifo;
+struct FIFO32 *mouseFifo;
+int mouseData0;
 
 //PS/2マウスからの割り込み
 void inthandler2c(int *esp)
 {
-    unsigned char data;
+    int data;
     io_out8(PIC1_OCW2, 0x64); //IRQ-12受付完了をPIC1(スレーブ)に通知(スレーブはIRQ-08~IRQ15を担当し、IRQ-12はスレーブの4番=0x64に接続されている)
     io_out8(PIC0_OCW2, 0x62); //IRQ-02受付完了をPIC0(マスター)に通知(スレーブはIRQ-02はマスタの2番=0x62に接続されている)
     data = io_in8(PORT_KEYDAT);
-    fifo8_put(&mouseFifo, data);
+    fifo32_put(mouseFifo, data + mouseData0);
     return;
 }
 
@@ -17,8 +18,11 @@ void inthandler2c(int *esp)
 #define MOUSECMD_ENABLE 0xf4
 
 //マウスの有効化
-void enable_mouse(struct MOUSE_DECODE *mouseDecode)
+void enable_mouse(struct FIFO32 *fifo, int data0, struct MOUSE_DECODE *mouseDecode)
 {
+    mouseFifo = fifo;
+    mouseData0 = data0;
+
     wait_KBC_sendready();
     io_out8(PORT_KEYCMD, KEYCMD_SENDTO_MOUSE);
     wait_KBC_sendready();

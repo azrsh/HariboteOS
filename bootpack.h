@@ -36,6 +36,15 @@ void fifo8_init(struct FIFO8 *fifo, int size, unsigned char *buffer);
 int fifo8_put(struct FIFO8 *fifo, unsigned char data);
 int fifo8_get(struct FIFO8 *fifo);
 int fifo8_status(struct FIFO8 *fifo);
+struct FIFO32
+{
+    int *buffer;
+    int nextRead, nextWrite, size, free, flags;
+};
+void fifo32_init(struct FIFO32 *fifo, int size, int *buffer);
+int fifo32_put(struct FIFO32 *fifo, int data);
+int fifo32_get(struct FIFO32 *fifo);
+int fifo32_status(struct FIFO32 *fifo);
 
 //graphic.c
 void init_palette(void);
@@ -109,8 +118,7 @@ void inthandler27(int *esp);
 //keyboard.c
 void inthandler2c(int *esp);
 void wait_KBC_sendready(void);
-void init_keyboard(void);
-extern struct FIFO8 keyFifo;
+void init_keyboard(struct FIFO32 *fifo, int data0);
 #define PORT_KEYDAT 0x0060
 #define PORT_KEYCMD 0x0064
 
@@ -121,9 +129,8 @@ struct MOUSE_DECODE
     int x, y, button;
 };
 void inthandler21(int *esp);
-void enable_mouse(struct MOUSE_DECODE *mouseDecode);
+void enable_mouse(struct FIFO32 *fifo, int data0, struct MOUSE_DECODE *mouseDecode);
 int mouse_decode(struct MOUSE_DECODE *mouseDecode, unsigned char data);
-extern struct FIFO8 mouseFifo;
 
 //memory.c
 #define MEMMAN_FREES 4090      //約32KB
@@ -144,6 +151,7 @@ unsigned int memorymanager_allocate(struct MEMORYMANAGER *memorymanager, unsigne
 int memorymanager_free(struct MEMORYMANAGER *memorymanager, unsigned int address, unsigned int size);
 unsigned int memorymanager_allocate_4k(struct MEMORYMANAGER *memorymanager, unsigned int size);
 int memorymanager_free_4k(struct MEMORYMANAGER *memorymanager, unsigned int address, unsigned int size);
+
 //sheet.c
 #define MAX_SHEETS 156
 //SHEETとSHEETCONTROLで循環参照している
@@ -173,8 +181,8 @@ void sheet_free(struct SHEET *sheet);
 struct TIMER
 {
     unsigned int timeout, flags;
-    struct FIFO8 *fifo;
-    unsigned char data;
+    struct FIFO32 *fifo;
+    int data;
 };
 struct TIMERCONTROL
 {
@@ -186,6 +194,6 @@ extern struct TIMERCONTROL timerControl;
 void init_pit(void);
 struct TIMER *timer_allocate(void);
 void timer_free(struct TIMER *timer);
-void timer_init(struct TIMER *timer, struct FIFO8 *fifo, unsigned char data);
+void timer_init(struct TIMER *timer, struct FIFO32 *fifo, int data);
 void timer_set_time(struct TIMER *timer, unsigned int timeout);
 void inthandler20(int *esp);

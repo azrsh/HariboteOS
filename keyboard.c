@@ -1,14 +1,15 @@
 #include "bootpack.h"
 
-struct FIFO8 keyFifo;
+struct FIFO32 *keyFifo;
+int keyData0;
 
 //PS/2キーボードからの割り込み
 void inthandler21(int *esp)
 {
-    unsigned char data;
+    int data;
     io_out8(PIC0_OCW2, 0x61); //PICに割り込みを受け取ったことを通知(IRQ1=0x61,IRQ3=0x63)
     data = io_in8(PORT_KEYDAT);
-    fifo8_put(&keyFifo, data);
+    fifo32_put(keyFifo, data + keyData0);
     return;
 }
 
@@ -32,8 +33,11 @@ void wait_KBC_sendready(void)
 }
 
 //キーボードコントローラの初期化
-void init_keyboard(void)
+void init_keyboard(struct FIFO32 *fifo, int data0)
 {
+    keyFifo = fifo;
+    keyData0 = data0;
+
     wait_KBC_sendready();
     io_out8(PORT_KEYCMD, KEYCMD_WRITE_MODE);
     wait_KBC_sendready();

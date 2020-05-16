@@ -7,8 +7,9 @@ void putfont8_asc_sheet(struct SHEET *sheet, int x, int y, int color, int backgr
 void HariMain(void)
 {
     struct BOOTINFO *bootInfo = (struct BOOTINFO *)ADRESS_BOOTINFO; //boot infoの開始アドレス
-    struct FIFO8 timerFifo;
-    char s[40], keyBuffer[32], mouseBuffer[128], timerBuffer[8];
+    struct FIFO32 fifo;
+    int fifoBuffer[128];
+    char s[40];
     struct TIMER *timer1, *timer2, *timer3;
     int mouseX, mouseY, i, count = 0;
     unsigned int memoryTotal;
@@ -22,25 +23,23 @@ void HariMain(void)
     init_pic();
     io_sti(); //IDT/GDTの初期化が終わったら割り込み禁止を解除する
 
-    fifo8_init(&keyFifo, 32, keyBuffer); //fofoバッファを初期化
-    fifo8_init(&mouseFifo, 128, mouseBuffer);
+    fifo32_init(&fifo, 8, fifoBuffer);
     init_pit();
     io_out8(PIC0_IMR, 0xf8); //PITとPIC1とキーボードを許可(11111000)
     io_out8(PIC1_IMR, 0xef); //マウスを許可(11101111)
 
-    fifo8_init(&timerFifo, 8, timerBuffer);
     timer1 = timer_allocate(); //1000/100Hz = 10秒
-    timer_init(timer1, &timerFifo, 10);
+    timer_init(timer1, &fifo, 10);
     timer_set_time(timer1, 1000);
     timer2 = timer_allocate(); //300/100Hz = 3秒
-    timer_init(timer2, &timerFifo, 3);
+    timer_init(timer2, &fifo, 3);
     timer_set_time(timer2, 300);
     timer3 = timer_allocate(); //50/100Hz = 0.5秒
-    timer_init(timer3, &timerFifo, 1);
+    timer_init(timer3, &fifo, 1);
     timer_set_time(timer3, 50);
 
-    init_keyboard();
-    enable_mouse(&mouseDecode);
+    init_keyboard(&fifo, 256);
+    enable_mouse(&fifo, 512, &mouseDecode);
 
     memoryTotal = memory_test(0x00400000, 0xbfffffff);
     memorymanager_init(memoryManager);
@@ -80,24 +79,22 @@ void HariMain(void)
         count++;
 
         io_cli();
-        if (fifo8_status(&keyFifo) + fifo8_status(&mouseFifo) + fifo8_status(&timerFifo) == 0)
+        if (fifo32_status(&fifo) == 0)
         {
             io_sti(); //io_stihlt()をやめた
         }
         else
         {
-            if (fifo8_status(&keyFifo) != 0)
+            i = fifo32_get(&fifo);
+            io_sti();
+
+            if (i >= 256 && i < 512) //キーボードのデータだった時
             {
-                i = fifo8_get(&keyFifo);
-                io_sti();
                 sprintf(s, "%02X", i);
                 putfont8_asc_sheet(sheetBackgroud, 0, 16, COLOR8_FFFFFF, COLOR8_008484, s, 2);
             }
-            else if (fifo8_status(&mouseFifo) != 0)
+            else if (i >= 512 && i <= 767)
             {
-                i = fifo8_get(&mouseFifo);
-                io_sti();
-
                 if (mouse_decode(&mouseDecode, i) != 0)
                 {
                     //3バイト貯まったので表示
@@ -135,39 +132,33 @@ void HariMain(void)
                     sheet_slide(sheetMouse, mouseX, mouseY); //カーソルの描画、sheet_refresh含む
                 }
             }
-            else if (fifo8_status(&timerFifo) != 0)
+            else if (i == 10)
             {
-                i = fifo8_get(&timerFifo); //とりあえず読み込む
-                io_sti();
-                if (i == 10)
-                {
-                    putfont8_asc_sheet(sheetBackgroud, 0, 64, COLOR8_FFFFFF, COLOR8_008484, "10[sec]", 7);
+                putfont8_asc_sheet(sheetBackgroud, 0, 64, COLOR8_FFFFFF, COLOR8_008484, "10[sec]", 7);
 
-                    sprintf(s, "%010d", count);
-                    putfont8_asc_sheet(sheetWindow, 40, 28, COLOR8_000000, COLOR8_C6C6C6, s, 10);
-                }
-                else if (i == 3)
-                {
-                    putfont8_asc_sheet(sheetBackgroud, 0, 80, COLOR8_FFFFFF, COLOR8_008484, "3[sec]", 6);
-                    count = 0; //測定開始(初期化にかかる時間は微妙な条件で変化するのでここから開始)
-                }
-                else
-                {
-                    if (i != 0)
-                    {
-                        //白い矩形を描画して次のdataを0に
-                        timer_init(timer3, &timerFifo, 0);
-                        boxfill8(bufferBackgroud, bootInfo->screenX, COLOR8_FFFFFF, 8, 96, 15, 111);
-                    }
-                    else
-                    {
-                        //背景と同色の矩形を描画して次のdataを1に
-                        timer_init(timer3, &timerFifo, 1);
-                        boxfill8(bufferBackgroud, bootInfo->screenX, COLOR8_008484, 8, 96, 16, 112);
-                    }
-                    timer_set_time(timer3, 50);
-                    sheet_refresh(sheetBackgroud, 8, 96, 16, 112);
-                }
+                sprintf(s, "%010d", count);
+                putfont8_asc_sheet(sheetWindow, 40, 28, COLOR8_000000, COLOR8_C6C6C6, s, 10);
+            }
+            else if (i == 3)
+            {
+                putfont8_asc_sheet(sheetBackgroud, 0, 80, COLOR8_FFFFFF, COLOR8_008484, "3[sec]", 6);
+                count = 0; //測定開始(初期化にかかる時間は微妙な条件で変化するのでここから開始)
+            }
+            else if (i == 1)
+            {
+                //白い矩形を描画して次のdataを0に
+                timer_init(timer3, &fifo, 0);
+                boxfill8(bufferBackgroud, bootInfo->screenX, COLOR8_FFFFFF, 8, 96, 15, 111);
+                timer_set_time(timer3, 50);
+                sheet_refresh(sheetBackgroud, 8, 96, 16, 112);
+            }
+            else if (i == 0)
+            {
+                //背景と同色の矩形を描画して次のdataを1に
+                timer_init(timer3, &fifo, 1);
+                boxfill8(bufferBackgroud, bootInfo->screenX, COLOR8_008484, 8, 96, 16, 112);
+                timer_set_time(timer3, 50);
+                sheet_refresh(sheetBackgroud, 8, 96, 16, 112);
             }
         }
     }
