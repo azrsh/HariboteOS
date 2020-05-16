@@ -2,6 +2,7 @@
 #include "bootpack.h"
 
 void make_window8(unsigned char *buffer, int xSize, int ySize, char *title);
+void putfont8_asc_sheet(struct SHEET *sheet, int x, int y, int color, int backgroundColor, char *s, int length);
 
 void HariMain(void)
 {
@@ -72,17 +73,14 @@ void HariMain(void)
     sheet_updown(sheetWindow, 1);
     sheet_updown(sheetMouse, 2);
     sprintf(s, "(%3d, %3d)", mouseX, mouseY);
-    putfonts8_asc(bufferBackgroud, bootInfo->screenX, 0, 0, COLOR8_FFFFFF, s);
+    putfont8_asc_sheet(sheetBackgroud, 0, 0, COLOR8_FFFFFF, COLOR8_008484, s, 10);
     sprintf(s, "memory %dMB    free : %dKB", memoryTotal / (1024 * 1024), memorymanager_total(memoryManager) / 1024);
-    putfonts8_asc(bufferBackgroud, bootInfo->screenX, 0, 32, COLOR8_FFFFFF, s);
-    sheet_refresh(sheetBackgroud, 0, 0, bootInfo->screenX, 48);
+    putfont8_asc_sheet(sheetBackgroud, 0, 32, COLOR8_FFFFFF, COLOR8_008484, s, 40);
 
     for (;;)
     {
         sprintf(s, "%010d", timerControl.count);
-        boxfill8(bufferWindow, 160, COLOR8_C6C6C6, 40, 28, 119, 43);
-        putfonts8_asc(bufferWindow, 160, 40, 28, COLOR8_000000, s);
-        sheet_refresh(sheetWindow, 40, 28, 120, 44);
+        putfont8_asc_sheet(sheetWindow, 40, 28, COLOR8_000000, COLOR8_C6C6C6, s, 10);
 
         io_cli();
         if (fifo8_status(&keyFifo) + fifo8_status(&mouseFifo) + fifo8_status(&timer1Fifo) + fifo8_status(&timer2Fifo) + fifo8_status(&timer3Fifo) == 0)
@@ -96,9 +94,7 @@ void HariMain(void)
                 i = fifo8_get(&keyFifo);
                 io_sti();
                 sprintf(s, "%02X", i);
-                boxfill8(bufferBackgroud, bootInfo->screenX, COLOR8_008484, 0, 16, 15, 31);
-                putfonts8_asc(bufferBackgroud, bootInfo->screenX, 0, 16, COLOR8_FFFFFF, s);
-                sheet_refresh(sheetBackgroud, 0, 16, 16, 32);
+                putfont8_asc_sheet(sheetBackgroud, 0, 16, COLOR8_FFFFFF, COLOR8_008484, s, 2);
             }
             else if (fifo8_status(&mouseFifo) != 0)
             {
@@ -122,9 +118,7 @@ void HariMain(void)
                         s[2] = 'C';
                     }
 
-                    boxfill8(bufferBackgroud, bootInfo->screenX, COLOR8_008484, 32, 16, 32 + 15 * 8 - 1, 31);
-                    putfonts8_asc(bufferBackgroud, bootInfo->screenX, 32, 16, COLOR8_FFFFFF, s);
-                    sheet_refresh(sheetBackgroud, 32, 16, 32 + 15 * 8, 32);
+                    putfont8_asc_sheet(sheetBackgroud, 32, 16, COLOR8_FFFFFF, COLOR8_008484, s, 15);
 
                     //カーソルの移動
                     mouseX += mouseDecode.x;
@@ -140,9 +134,7 @@ void HariMain(void)
                         mouseY = bootInfo->screenY - 1;
 
                     sprintf(s, "(%3d, %3d)", mouseX, mouseY);
-                    boxfill8(bufferBackgroud, bootInfo->screenX, COLOR8_008484, 0, 0, 79, 15); //マウスの座標表示を消す
-                    putfonts8_asc(bufferBackgroud, bootInfo->screenX, 0, 0, COLOR8_FFFFFF, s); //マウスの座標表示の描画
-                    sheet_refresh(sheetBackgroud, 0, 0, 80, 16);
+                    putfont8_asc_sheet(sheetBackgroud, 0, 0, COLOR8_FFFFFF, COLOR8_008484, s, 10);
                     sheet_slide(sheetMouse, mouseX, mouseY); //カーソルの描画、sheet_refresh含む
                 }
             }
@@ -150,15 +142,13 @@ void HariMain(void)
             {
                 i = fifo8_get(&timer1Fifo); //とりあえず読み込む
                 io_sti();
-                putfonts8_asc(bufferBackgroud, bootInfo->screenX, 0, 64, COLOR8_FFFFFF, "10[sec]");
-                sheet_refresh(sheetBackgroud, 0, 64, 56, 80);
+                putfont8_asc_sheet(sheetBackgroud, 0, 64, COLOR8_FFFFFF, COLOR8_008484, "10[sec]", 7);
             }
             else if (fifo8_status(&timer2Fifo) != 0)
             {
                 i = fifo8_get(&timer2Fifo); //とりあえず読み込む
                 io_sti();
-                putfonts8_asc(bufferBackgroud, bootInfo->screenX, 0, 80, COLOR8_FFFFFF, "3[sec]");
-                sheet_refresh(sheetBackgroud, 0, 80, 56, 96);
+                putfont8_asc_sheet(sheetBackgroud, 0, 80, COLOR8_FFFFFF, COLOR8_008484, "3[sec]", 6);
             }
             else if (fifo8_status(&timer3Fifo) != 0)
             {
@@ -238,4 +228,11 @@ void make_window8(unsigned char *buffer, int xSize, int ySize, char *title)
             buffer[(5 + y) * xSize + (xSize - 21 + x)] = c;
         }
     }
+}
+
+void putfont8_asc_sheet(struct SHEET *sheet, int x, int y, int color, int backgroundColor, char *s, int length)
+{
+    boxfill8(sheet->buffer, sheet->boxXSize, backgroundColor, x, y, x + length * 8 - 1, y + 16 - 1);
+    putfonts8_asc(sheet->buffer, sheet->boxXSize, x, y, color, s);
+    sheet_refresh(sheet, x, y, x + length * 8, y + 16);
 }
