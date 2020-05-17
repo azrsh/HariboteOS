@@ -227,18 +227,3 @@ void putfont8_asc_sheet(struct SHEET *sheet, int x, int y, int color, int backgr
     putfonts8_asc(sheet->buffer, sheet->boxXSize, x, y, color, s);
     sheet_refresh(sheet, x, y, x + length * 8, y + 16);
 }
-
-void set490timers(struct FIFO32 *fifo, int mode)
-{
-    int i;
-    struct TIMER *timer;
-    if (mode != 0)
-    {
-        for (i = 0; i < 490; i++)
-        {
-            timer = timer_allocate();
-            timer_init(timer, fifo, 1024 + i);
-            timer_set_time(timer, 100 * 60 * 60 * 24 * 50 + i * 100);
-        }
-    }
-}
