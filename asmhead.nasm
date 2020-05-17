@@ -17,13 +17,13 @@ VRAM    EQU     0x0ff8              ; グラフィックバッファの開始番
 		ORG		0xc200			    ; このプログラムがどこに読み込まれるのか,数値の根拠などはipl.nasmのOS本体のロードを参照
 
 ; 画面モードの設定
-        MOV     AL, 0x13            ; VGAグラフィックス,320x200x8bitカラー
-        MOV     AH, 0x00            ; 画面モードの切り替え
+        MOV     BX, 0x4105          ; VBE(VESA BIOS extension)グラフィックス,640x480x8bitカラー
+        MOV     AX, 0x4f02          ; 画面モードの切り替え(BX、AXは高解像度の新しい画面モード用のレジスタ。VESA BIOS extension)
         INT     0x10                ; ビデオBIOSの呼び出し
         MOV     BYTE [VMODE], 8     ;画面モードの保存
-        MOV     WORD [SCRNX], 320           ;
-        MOV     WORD [SCRNY], 200           ;
-        MOV     DWORD [VRAM], 0x000a0000    ; BIOSで指定された情報
+        MOV     WORD [SCRNX], 1024          ;
+        MOV     WORD [SCRNY], 768           ;
+        MOV     DWORD [VRAM], 0xe0000000    ; BIOSで指定された情報
 
 ; キーボードの状態をBIOSに教えてもらう
         MOV     AH, 0x02
