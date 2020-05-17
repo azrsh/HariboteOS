@@ -1,6 +1,16 @@
 ; haribote-os
 ; TAB=4
 
+[INSTRSET "i486p"]
+
+VBEMODE	EQU		0x105   ; 1024 x  768 x 8bitカラー
+; （画面モード一覧）
+;	0x100 :  640 x  400 x 8bitカラー
+;	0x101 :  640 x  480 x 8bitカラー
+;	0x103 :  800 x  600 x 8bitカラー
+;	0x105 : 1024 x  768 x 8bitカラー
+;	0x107 : 1280 x 1024 x 8bitカラー
+
 ; 定数定義みたいなもの
 BOTPAK	EQU		0x00280000		    ; bootpackのロード先
 DSKCAC	EQU		0x00100000		    ; ディスクキャッシュの場所
@@ -14,18 +24,63 @@ SCRNX   EQU     0x0ff4              ; 解像度のx(screen x)
 SCRNY   EQU     0x0ff6              ; 解像度のy(screen y)
 VRAM    EQU     0x0ff8              ; グラフィックバッファの開始番地
 
-		ORG		0xc200			    ; このプログラムがどこに読み込まれるのか,数値の根拠などはipl.nasmのOS本体のロードを参照
+	ORG	0xc200			    ; このプログラムがどこに読み込まれるのか,数値の根拠などはipl.nasmのOS本体のロードを参照
+
+
+; VBEの存在を確認
+        MOV     AX, 0x9000
+        MOV     ES, AX
+        MOV     DI, 0
+        MOV     AX, 0x4f00
+        INT     0x10
+        CMP     AX, 0x004f
+        JNE     screen320
+
+; VBEのバージョンチェック
+        MOV     AX, [ES:DI+4]
+        CMP     AX, 0x0200
+        JB      screen320               ; if(AX < 0x0200) goto screen320;
+
+; 画面モード情報の取得
+        MOV     CX, VBEMODE
+        MOV     AX, 0x4f01
+        INT     0x10
+        CMP     AX, 0x004f
+        JNE     screen320
+
+; 画面モード情報の確認
+        CMP     BYTE [ES:DI+0x19], 8    ; 色の数が8色か
+        JNE     screen320
+        CMP     BYTE [ES:DI+0x1b], 4    ; 色の指定方法はパレットモード(4)か
+        JNE     screen320
+        MOV     AX, [ES:DI+0x00]        ; モード属性のbit7が0ならあきらめる
+        AND     AX, 0x0080
+        JZ      screen320
 
 ; 画面モードの設定
-        MOV     BX, 0x4105          ; VBE(VESA BIOS extension)グラフィックス,640x480x8bitカラー
-        MOV     AX, 0x4f02          ; 画面モードの切り替え(BX、AXは高解像度の新しい画面モード用のレジスタ。VESA BIOS extension)
-        INT     0x10                ; ビデオBIOSの呼び出し
-        MOV     BYTE [VMODE], 8     ;画面モードの保存
-        MOV     WORD [SCRNX], 1024          ;
-        MOV     WORD [SCRNY], 768           ;
-        MOV     DWORD [VRAM], 0xe0000000    ; BIOSで指定された情報
+        MOV     BX, VBEMODE+0x4000      ; VBE(VESA BIOS extension)グラフィックス,640x480x8bitカラー
+        MOV     AX, 0x4f02              ; 画面モードの切り替え(BX、AXは高解像度の新しい画面モード用のレジスタ。VESA BIOS extension)
+        INT     0x10                    ; ビデオBIOSの呼び出し
+        MOV     BYTE [VMODE], 8         ; 画面モードの保存
+        MOV     AX, [ES:DI+0x12]
+        MOV     [SCRNX], AX             ;
+        MOV     AX, [ES:DI+0x14]        ;
+        MOV     [SCRNY], AX             ;
+        MOV     EAX, [ES:DI+0x28]       ;
+        MOV     [VRAM], EAX             ; BIOSで指定された情報
+        JMP    keyboardstatus
+
+screen320:
+        MOV     AL, 0x13                ; VGAグラフィックス、320x200x8bitカラー
+        MOV     AH, 0x00
+        INT     0x10
+        MOV     BYTE [VMODE], 8
+        MOV     WORD [SCRNX], 320
+        MOV     WORD [SCRNY], 200
+        MOV     DWORD [VRAM], 0x000a0000
 
 ; キーボードの状態をBIOSに教えてもらう
+keyboardstatus:
         MOV     AH, 0x02
         INT     0x16                ; keyboard BIOS
         MOV     [LEDS], AL
