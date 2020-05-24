@@ -143,7 +143,7 @@ void HariMain(void)
 
                     putfont8_asc_sheet(sheetBackgroud, 32, 16, COLOR8_FFFFFF, COLOR8_008484, s, 15);
 
-                    //カーソルの移動
+                    //マウスカーソルの移動
                     mouseX += mouseDecode.x;
                     mouseY += mouseDecode.y;
 
@@ -159,6 +159,12 @@ void HariMain(void)
                     sprintf(s, "(%3d, %3d)", mouseX, mouseY);
                     putfont8_asc_sheet(sheetBackgroud, 0, 0, COLOR8_FFFFFF, COLOR8_008484, s, 10);
                     sheet_slide(sheetMouse, mouseX, mouseY); //カーソルの描画、sheet_refresh含む
+
+                    if ((mouseDecode.button & 0x01) != 0)
+                    {
+                        //左ボタンを押していたらウィンドウを動かす
+                        sheet_slide(sheetWindow, mouseX - 80, mouseY - 8);
+                    }
                 }
             }
             else if (i == 10)
