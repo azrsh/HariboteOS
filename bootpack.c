@@ -3,6 +3,7 @@
 
 void make_window8(unsigned char *buffer, int xSize, int ySize, char *title);
 void putfont8_asc_sheet(struct SHEET *sheet, int x, int y, int color, int backgroundColor, char *s, int length);
+void make_textbox8(struct SHEET *sheet, int x0, int y0, int sx, int sy, int color);
 
 void HariMain(void)
 {
@@ -11,7 +12,7 @@ void HariMain(void)
     int fifoBuffer[128];
     char s[40];
     struct TIMER *timer1, *timer2, *timer3;
-    int mouseX, mouseY, i, count = 0;
+    int mouseX, mouseY, i, cursorX, cursorColor;
     unsigned int memoryTotal;
     struct MOUSE_DECODE mouseDecode;
     struct MEMORYMANAGER *memoryManager = (struct MEMORYMANAGER *)MEMMAN_ADDR;
@@ -68,6 +69,9 @@ void HariMain(void)
     init_screen(bufferBackgroud, bootInfo->screenX, bootInfo->screenY);
     init_mouse_cursor8(bufferMouse, 99);
     make_window8(bufferWindow, 160, 52, "window");
+    make_textbox8(sheetWindow, 8, 28, 144, 16, COLOR8_FFFFFF);
+    cursorX = 8;
+    cursorColor = COLOR8_FFFFFF;
     sheet_slide(sheetBackgroud, 0, 0);
     mouseX = (bootInfo->screenX - 16) / 2; //画面中央に配置
     mouseY = (bootInfo->screenY - 28 - 16) / 2;
@@ -97,12 +101,26 @@ void HariMain(void)
             {
                 sprintf(s, "%02X", i - 256);
                 putfont8_asc_sheet(sheetBackgroud, 0, 16, COLOR8_FFFFFF, COLOR8_008484, s, 2);
-                if (ketTable[i - 256] != 0)
+                if (i < 0x54 + 256)
                 {
-                    s[0] = ketTable[i - 256];
-                    s[1] = 0;
-                    putfont8_asc_sheet(sheetWindow, 40, 28, COLOR8_000000, COLOR8_C6C6C6, s, 1);
+                    if (ketTable[i - 256] != 0 && cursorX < 144) //通常文字
+                    {
+                        //一文字表示してカーソルを一つ進める
+                        s[0] = ketTable[i - 256];
+                        s[1] = 0;
+                        putfont8_asc_sheet(sheetWindow, cursorX, 28, COLOR8_000000, COLOR8_C6C6C6, s, 1);
+                        cursorX += 8;
+                    }
                 }
+                if (i == 256 + 0x0e && cursorX > 8) //バックスペース
+                {
+                    //スペースで一文字上書きしてカーソルを戻す
+                    putfont8_asc_sheet(sheetWindow, cursorX, 28, COLOR8_000000, COLOR8_FFFFFF, " ", 1);
+                    cursorX -= 8;
+                }
+                //カーソルの再描画
+                boxfill8(sheetWindow->buffer, sheetWindow->boxXSize, cursorColor, cursorX, 28, cursorX + 7, 43);
+                sheet_refresh(sheetWindow, cursorX, 28, cursorX + 8, 44);
             }
             else if (i >= 512 && i <= 767)
             {
@@ -233,4 +251,18 @@ void putfont8_asc_sheet(struct SHEET *sheet, int x, int y, int color, int backgr
     boxfill8(sheet->buffer, sheet->boxXSize, backgroundColor, x, y, x + length * 8 - 1, y + 16 - 1);
     putfonts8_asc(sheet->buffer, sheet->boxXSize, x, y, color, s);
     sheet_refresh(sheet, x, y, x + length * 8, y + 16);
+}
+
+void make_textbox8(struct SHEET *sheet, int x0, int y0, int sx, int sy, int color)
+{
+    int x1 = x0 + sx, y1 = y0 + sy;
+    boxfill8(sheet->buffer, sheet->boxXSize, COLOR8_848484, x0 - 2, y0 - 3, x1 + 1, y0 - 3);
+    boxfill8(sheet->buffer, sheet->boxXSize, COLOR8_848484, x0 - 3, y0 - 3, x0 - 3, y1 + 1);
+    boxfill8(sheet->buffer, sheet->boxXSize, COLOR8_FFFFFF, x0 - 3, y1 + 2, x1 + 1, y1 + 2);
+    boxfill8(sheet->buffer, sheet->boxXSize, COLOR8_FFFFFF, x1 + 2, y0 - 3, x1 + 2, y1 + 2);
+    boxfill8(sheet->buffer, sheet->boxXSize, COLOR8_000000, x0 - 1, y0 - 2, x1 + 0, y0 - 2);
+    boxfill8(sheet->buffer, sheet->boxXSize, COLOR8_000000, x0 - 2, y0 - 2, x0 - 2, y1 + 0);
+    boxfill8(sheet->buffer, sheet->boxXSize, COLOR8_C6C6C6, x0 - 2, y1 + 1, x1 + 0, y1 + 1);
+    boxfill8(sheet->buffer, sheet->boxXSize, COLOR8_C6C6C6, x1 + 1, y0 - 2, x1 + 1, y1 + 1);
+    boxfill8(sheet->buffer, sheet->boxXSize, color, x0 - 1, y0 - 1, x1 + 0, y1 + 0);
 }
