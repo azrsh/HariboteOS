@@ -18,6 +18,13 @@ void HariMain(void)
     struct SHEETCONTROL *sheetControl;
     struct SHEET *sheetBackgroud, *sheetMouse, *sheetWindow;
     unsigned char *bufferBackgroud, bufferMouse[256], *bufferWindow;
+    static char ketTable[0x54] = {
+        0, 0, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '^', 0, 0,
+        'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '@', '[', 0, 0, 'A', 'S',
+        'D', 'F', 'G', 'H', 'J', 'K', 'L', ';', ':', 0, 0, ']', 'Z', 'X', 'C', 'V',
+        'B', 'N', 'M', ',', '.', '/', 0, '*', 0, ' ', 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, '7', '8', '9', '-', '4', '5', '6', '+', '1',
+        '2', '3', '0', '.'};
 
     init_gdtidt();
     init_pic();
@@ -90,9 +97,11 @@ void HariMain(void)
             {
                 sprintf(s, "%02X", i - 256);
                 putfont8_asc_sheet(sheetBackgroud, 0, 16, COLOR8_FFFFFF, COLOR8_008484, s, 2);
-                if (i == 0x1e + 256)
+                if (ketTable[i - 256] != 0)
                 {
-                    putfont8_asc_sheet(sheetWindow, 40, 28, COLOR8_000000, COLOR8_C6C6C6, "A", 1);
+                    s[0] = ketTable[i - 256];
+                    s[1] = 0;
+                    putfont8_asc_sheet(sheetWindow, 40, 28, COLOR8_000000, COLOR8_C6C6C6, s, 1);
                 }
             }
             else if (i >= 512 && i <= 767)
