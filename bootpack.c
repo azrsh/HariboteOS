@@ -4,6 +4,7 @@
 void make_window8(unsigned char *buffer, int xSize, int ySize, char *title);
 void putfont8_asc_sheet(struct SHEET *sheet, int x, int y, int color, int backgroundColor, char *s, int length);
 void make_textbox8(struct SHEET *sheet, int x0, int y0, int sx, int sy, int color);
+void taskB_main(void);
 
 void HariMain(void)
 {
@@ -12,7 +13,7 @@ void HariMain(void)
     int fifoBuffer[128];
     char s[40];
     struct TIMER *timer1, *timer2, *timer3;
-    int mouseX, mouseY, i, cursorX, cursorColor;
+    int mouseX, mouseY, i, cursorX, cursorColor, taskB_esp;
     unsigned int memoryTotal;
     struct MOUSE_DECODE mouseDecode;
     struct MEMORYMANAGER *memoryManager = (struct MEMORYMANAGER *)MEMMAN_ADDR;
@@ -26,6 +27,8 @@ void HariMain(void)
         'B', 'N', 'M', ',', '.', '/', 0, '*', 0, ' ', 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, '7', '8', '9', '-', '4', '5', '6', '+', '1',
         '2', '3', '0', '.'};
+    struct TaskStatusSegment32 tssA, tssB;
+    struct SEGMENT_DESCRIPTOR *gdt = (struct SEGMENT_DESCRIPTOR *)ADRESS_GDT;
 
     init_gdtidt();
     init_pic();
@@ -84,6 +87,31 @@ void HariMain(void)
     putfont8_asc_sheet(sheetBackgroud, 0, 0, COLOR8_FFFFFF, COLOR8_008484, s, 10);
     sprintf(s, "memory %dMB    free : %dKB", memoryTotal / (1024 * 1024), memorymanager_total(memoryManager) / 1024);
     putfont8_asc_sheet(sheetBackgroud, 0, 32, COLOR8_FFFFFF, COLOR8_008484, s, 40);
+
+    tssA.ldtr = 0;
+    tssA.iomap = 0x40000000;
+    tssB.ldtr = 0;
+    tssB.iomap = 0x40000000;
+    set_segment_descriptor(gdt + 3, 103, (int)&tssA, AR_TSS32);
+    set_segment_descriptor(gdt + 4, 103, (int)&tssB, AR_TSS32);
+    load_tr(3 * 8);
+    taskB_esp = memorymanager_allocate_4k(memoryManager, 64 * 1024) + 64 * 1024;
+    tssB.eip = (int)&taskB_main;
+    tssB.eflags = 0x00000202; //IF = 1;
+    tssA.eax = 0;
+    tssA.ecx = 0;
+    tssA.edx = 0;
+    tssA.ebx = 0;
+    tssB.esp = taskB_esp;
+    tssB.ebp = 0;
+    tssB.esi = 0;
+    tssB.edi = 0;
+    tssB.es = 1 * 8;
+    tssB.cs = 2 * 8;
+    tssB.ss = 1 * 8;
+    tssB.ds = 1 * 8;
+    tssB.fs = 1 * 8;
+    tssB.gs = 1 * 8;
 
     for (;;)
     {
@@ -170,6 +198,7 @@ void HariMain(void)
             else if (i == 10)
             {
                 putfont8_asc_sheet(sheetBackgroud, 0, 64, COLOR8_FFFFFF, COLOR8_008484, "10[sec]", 7);
+                taskswitch4();
             }
             else if (i == 3)
             {
@@ -271,4 +300,12 @@ void make_textbox8(struct SHEET *sheet, int x0, int y0, int sx, int sy, int colo
     boxfill8(sheet->buffer, sheet->boxXSize, COLOR8_C6C6C6, x0 - 2, y1 + 1, x1 + 0, y1 + 1);
     boxfill8(sheet->buffer, sheet->boxXSize, COLOR8_C6C6C6, x1 + 1, y0 - 2, x1 + 1, y1 + 1);
     boxfill8(sheet->buffer, sheet->boxXSize, color, x0 - 1, y0 - 1, x1 + 0, y1 + 0);
+}
+
+void taskB_main(void)
+{
+    for (;;)
+    {
+        io_hlt();
+    }
 }
