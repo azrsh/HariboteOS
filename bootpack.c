@@ -304,8 +304,30 @@ void make_textbox8(struct SHEET *sheet, int x0, int y0, int sx, int sy, int colo
 
 void taskB_main(void)
 {
+    struct FIFO32 fifo;
+    struct TIMER *timer;
+    int i, fifoBuffer[128];
+
+    fifo32_init(&fifo, 128, fifoBuffer);
+    timer = timer_allocate();
+    timer_init(timer, &fifo, 1);
+    timer_set_time(timer, 500);
+
     for (;;)
     {
-        io_hlt();
+        io_cli();
+        if (fifo8_status(&fifo) == 0)
+        {
+            io_stihlt();
+        }
+        else
+        {
+            i = fifo32_get(&fifo);
+            io_sti();
+            if (i == 1) //5秒でタイムアウト
+            {
+                taskswitch3();
+            }
+        }
     }
 }

@@ -18,7 +18,7 @@
         GLOBAL  _load_tr
         GLOBAL  _asm_inthandler20, _asm_inthandler21, _asm_inthandler27, _asm_inthandler2c
         GLOBAL  _memory_test_sub
-        GLOBAL  _taskswitch4
+        GLOBAL  _taskswitch4, _taskswitch3
         EXTERN  _inthandler20, _inthandler21, _inthandler27, _inthandler2c
 
 ; 以下は実際の関数
@@ -213,4 +213,8 @@ memory_test_final:
 
 _taskswitch4:                       ; void taskswitch4(void);
     JMP     4*8:0
+    RET
+
+_taskswitch3:	                    ; void taskswitch3(void);
+    JMP		3*8:0
     RET

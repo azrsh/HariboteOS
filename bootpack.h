@@ -27,6 +27,7 @@ void asm_inthandler27(void);
 void asm_inthandler2c(void);
 unsigned int memory_test_sub(unsigned int start, unsigned int end);
 void taskswitch4(void);
+void taskswitch3(void);
 
 //fifo.c
 struct FIFO8
