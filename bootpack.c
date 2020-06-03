@@ -115,6 +115,7 @@ void HariMain(void)
     tssB.ds = 1 * 8;
     tssB.fs = 1 * 8;
     tssB.gs = 1 * 8;
+    *((int *)0x0fec) = (int)sheetBackgroud;
 
     for (;;)
     {
@@ -314,7 +315,9 @@ void taskB_main(void)
 {
     struct FIFO32 fifo;
     struct TIMER *timerTs;
-    int i, fifoBuffer[128];
+    int i, fifoBuffer[128], count = 0;
+    char s[11];
+    struct SHEET *sheetBackground = (struct SHEET *)*((int *)0x0fec);
 
     fifo32_init(&fifo, 128, fifoBuffer);
     timerTs = timer_allocate();
@@ -323,10 +326,13 @@ void taskB_main(void)
 
     for (;;)
     {
+        count++;
+        sprintf(s, "%10d", count);
+        putfont8_asc_sheet(sheetBackground, 0, 144, COLOR8_FFFFFF, COLOR8_008484, s, 10);
         io_cli();
         if (fifo8_status(&fifo) == 0)
         {
-            io_stihlt();
+            io_sti();
         }
         else
         {
