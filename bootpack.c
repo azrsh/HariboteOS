@@ -12,7 +12,7 @@ void HariMain(void)
     struct FIFO32 fifo;
     int fifoBuffer[128];
     char s[40];
-    struct TIMER *timer1, *timer2, *timer3, *timerTaskSwitch;
+    struct TIMER *timer1, *timer2, *timer3;
     int mouseX, mouseY, i, cursorX, cursorColor, taskB_esp;
     unsigned int memoryTotal;
     struct MOUSE_DECODE mouseDecode;
@@ -48,9 +48,6 @@ void HariMain(void)
     timer3 = timer_allocate(); //50/100Hz = 0.5秒
     timer_init(timer3, &fifo, 1);
     timer_set_time(timer3, 50);
-    timerTaskSwitch = timer_allocate(); //50/100Hz = 0.5秒
-    timer_init(timerTaskSwitch, &fifo, 2);
-    timer_set_time(timerTaskSwitch, 2);
 
     init_keyboard(&fifo, 256);
     enable_mouse(&fifo, 512, &mouseDecode);
@@ -100,7 +97,7 @@ void HariMain(void)
     load_tr(3 * 8);
     taskB_esp = memorymanager_allocate_4k(memoryManager, 64 * 1024) + 64 * 1024 - 8;
     tssB.eip = (int)&taskB_main;
-    tssB.eflags = 0x00000202; //IF = 1;
+    tssB.eflags = 0x00000202; //IF = 1;割込み許可フラグ
     tssA.eax = 0;
     tssA.ecx = 0;
     tssA.edx = 0;
@@ -116,6 +113,7 @@ void HariMain(void)
     tssB.fs = 1 * 8;
     tssB.gs = 1 * 8;
     *((int *)(taskB_esp + 4)) = (int)sheetBackgroud;
+    multitask_init();
 
     for (;;)
     {
@@ -129,12 +127,7 @@ void HariMain(void)
             i = fifo32_get(&fifo);
             io_sti();
 
-            if (i == 2)
-            {
-                farjump(0, 4 * 8);
-                timer_set_time(timerTaskSwitch, 2);
-            }
-            else if (i >= 256 && i < 512) //キーボードのデータだった時
+            if (i >= 256 && i < 512) //キーボードのデータだった時
             {
                 sprintf(s, "%02X", i - 256);
                 putfont8_asc_sheet(sheetBackgroud, 0, 16, COLOR8_FFFFFF, COLOR8_008484, s, 2);
@@ -314,14 +307,11 @@ void make_textbox8(struct SHEET *sheet, int x0, int y0, int sx, int sy, int colo
 void taskB_main(struct SHEET *sheetBackground)
 {
     struct FIFO32 fifo;
-    struct TIMER *timerTaskSwitch, *timerPut, *timer1s;
+    struct TIMER *timerPut, *timer1s;
     int i, fifoBuffer[128], count = 0, count0 = 0;
     char s[12];
 
     fifo32_init(&fifo, 128, fifoBuffer);
-    timerTaskSwitch = timer_allocate();
-    timer_init(timerTaskSwitch, &fifo, 2);
-    timer_set_time(timerTaskSwitch, 2);
     timerPut = timer_allocate();
     timer_init(timerPut, &fifo, 1);
     timer_set_time(timerPut, 10);
@@ -346,11 +336,6 @@ void taskB_main(struct SHEET *sheetBackground)
                 sprintf(s, "%11d", count);
                 putfont8_asc_sheet(sheetBackground, 0, 144, COLOR8_FFFFFF, COLOR8_008484, s, 11);
                 timer_set_time(timerPut, 1);
-            }
-            else if (i == 2)
-            {
-                farjump(0, 3 * 8);
-                timer_set_time(timerTaskSwitch, 2);
             }
             else if (i == 100)
             {

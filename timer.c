@@ -97,7 +97,7 @@ void timer_set_time(struct TIMER *timer, unsigned int timeout)
 //この方式では、count = 0xffffffff以降が設定できない
 void inthandler20(int *esp)
 {
-    int i;
+    char ts = 0;
     struct TIMER *timer;
     io_out8(PIC0_OCW2, 0x60); //IRQ-00受付完了をPICに通知
     timerControl.count++;
@@ -115,7 +115,14 @@ void inthandler20(int *esp)
         }
         //タイムアウト
         timer->flags = TIMER_FLAGS_ALLOCATED;
-        fifo32_put(timer->fifo, timer->data);
+        if (timer != multitaskTimer)
+        {
+            fifo32_put(timer->fifo, timer->data);
+        }
+        else
+        {
+            ts = 1;
+        }
         timer = timer->next;
     }
 
@@ -123,5 +130,9 @@ void inthandler20(int *esp)
     timerControl.t0 = timer;
     //最も近いtimmeoutにnextを更新
     timerControl.next_time = timerControl.t0->timeout;
+    if (ts != 0)
+    {
+        multitask_taskswitch();
+    }
     return;
 }

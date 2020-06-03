@@ -210,3 +210,8 @@ struct TaskStatusSegment32
     int es, cs, ss, ds, fs, gs;
     int ldtr, iomap;
 };
+
+//multitask.c
+extern struct TIMER *multitaskTimer;
+void multitask_init(void);
+void multitask_taskswitch(void);
