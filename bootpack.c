@@ -4,7 +4,7 @@
 void make_window8(unsigned char *buffer, int xSize, int ySize, char *title);
 void putfont8_asc_sheet(struct SHEET *sheet, int x, int y, int color, int backgroundColor, char *s, int length);
 void make_textbox8(struct SHEET *sheet, int x0, int y0, int sx, int sy, int color);
-void taskB_main(void);
+void taskB_main(struct SHEET *sheetBackground);
 
 void HariMain(void)
 {
@@ -98,7 +98,7 @@ void HariMain(void)
     set_segment_descriptor(gdt + 3, 103, (int)&tssA, AR_TSS32);
     set_segment_descriptor(gdt + 4, 103, (int)&tssB, AR_TSS32);
     load_tr(3 * 8);
-    taskB_esp = memorymanager_allocate_4k(memoryManager, 64 * 1024) + 64 * 1024;
+    taskB_esp = memorymanager_allocate_4k(memoryManager, 64 * 1024) + 64 * 1024 - 8;
     tssB.eip = (int)&taskB_main;
     tssB.eflags = 0x00000202; //IF = 1;
     tssA.eax = 0;
@@ -115,7 +115,7 @@ void HariMain(void)
     tssB.ds = 1 * 8;
     tssB.fs = 1 * 8;
     tssB.gs = 1 * 8;
-    *((int *)0x0fec) = (int)sheetBackgroud;
+    *((int *)(taskB_esp + 4)) = (int)sheetBackgroud;
 
     for (;;)
     {
@@ -311,26 +311,26 @@ void make_textbox8(struct SHEET *sheet, int x0, int y0, int sx, int sy, int colo
     boxfill8(sheet->buffer, sheet->boxXSize, color, x0 - 1, y0 - 1, x1 + 0, y1 + 0);
 }
 
-void taskB_main(void)
+void taskB_main(struct SHEET *sheetBackground)
 {
     struct FIFO32 fifo;
-    struct TIMER *timerTs;
+    struct TIMER *timerTs, *timerPut;
     int i, fifoBuffer[128], count = 0;
-    char s[11];
-    struct SHEET *sheetBackground = (struct SHEET *)*((int *)0x0fec);
+    char s[12];
 
     fifo32_init(&fifo, 128, fifoBuffer);
     timerTs = timer_allocate();
-    timer_init(timerTs, &fifo, 1);
+    timer_init(timerTs, &fifo, 2);
     timer_set_time(timerTs, 2);
+    timerPut = timer_allocate();
+    timer_init(timerPut, &fifo, 1);
+    timer_set_time(timerPut, 10);
 
     for (;;)
     {
         count++;
-        sprintf(s, "%10d", count);
-        putfont8_asc_sheet(sheetBackground, 0, 144, COLOR8_FFFFFF, COLOR8_008484, s, 10);
         io_cli();
-        if (fifo8_status(&fifo) == 0)
+        if (fifo32_status(&fifo) == 0)
         {
             io_sti();
         }
@@ -338,7 +338,13 @@ void taskB_main(void)
         {
             i = fifo32_get(&fifo);
             io_sti();
-            if (i == 1) //5秒でタイムアウト
+            if (i == 1)
+            {
+                sprintf(s, "%11d", count);
+                putfont8_asc_sheet(sheetBackground, 0, 144, COLOR8_FFFFFF, COLOR8_008484, s, 11);
+                timer_set_time(timerPut, 1);
+            }
+            else if (i == 2)
             {
                 farjump(0, 3 * 8);
                 timer_set_time(timerTs, 2);
