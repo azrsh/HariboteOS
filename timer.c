@@ -115,7 +115,7 @@ void inthandler20(int *esp)
         }
         //タイムアウト
         timer->flags = TIMER_FLAGS_ALLOCATED;
-        if (timer != multitaskTimer)
+        if (timer != taskTimer)
         {
             fifo32_put(timer->fifo, timer->data);
         }
@@ -132,7 +132,7 @@ void inthandler20(int *esp)
     timerControl.next_time = timerControl.t0->timeout;
     if (ts != 0)
     {
-        multitask_taskswitch();
+        task_switch();
     }
     return;
 }

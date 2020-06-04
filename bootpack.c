@@ -13,7 +13,7 @@ void HariMain(void)
     int fifoBuffer[128];
     char s[40];
     struct TIMER *timer1, *timer2, *timer3;
-    int mouseX, mouseY, i, cursorX, cursorColor, taskB_esp;
+    int mouseX, mouseY, i, cursorX, cursorColor;
     unsigned int memoryTotal;
     struct MOUSE_DECODE mouseDecode;
     struct MEMORYMANAGER *memoryManager = (struct MEMORYMANAGER *)MEMMAN_ADDR;
@@ -27,8 +27,7 @@ void HariMain(void)
         'B', 'N', 'M', ',', '.', '/', 0, '*', 0, ' ', 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, '7', '8', '9', '-', '4', '5', '6', '+', '1',
         '2', '3', '0', '.'};
-    struct TaskStatusSegment32 tssA, tssB;
-    struct SEGMENT_DESCRIPTOR *gdt = (struct SEGMENT_DESCRIPTOR *)ADRESS_GDT;
+    struct TASK *taskB;
 
     init_gdtidt();
     init_pic();
@@ -88,32 +87,18 @@ void HariMain(void)
     sprintf(s, "memory %dMB    free : %dKB", memoryTotal / (1024 * 1024), memorymanager_total(memoryManager) / 1024);
     putfont8_asc_sheet(sheetBackgroud, 0, 32, COLOR8_FFFFFF, COLOR8_008484, s, 40);
 
-    tssA.ldtr = 0;
-    tssA.iomap = 0x40000000;
-    tssB.ldtr = 0;
-    tssB.iomap = 0x40000000;
-    set_segment_descriptor(gdt + 3, 103, (int)&tssA, AR_TSS32);
-    set_segment_descriptor(gdt + 4, 103, (int)&tssB, AR_TSS32);
-    load_tr(3 * 8);
-    taskB_esp = memorymanager_allocate_4k(memoryManager, 64 * 1024) + 64 * 1024 - 8;
-    tssB.eip = (int)&taskB_main;
-    tssB.eflags = 0x00000202; //IF = 1;割込み許可フラグ
-    tssA.eax = 0;
-    tssA.ecx = 0;
-    tssA.edx = 0;
-    tssA.ebx = 0;
-    tssB.esp = taskB_esp;
-    tssB.ebp = 0;
-    tssB.esi = 0;
-    tssB.edi = 0;
-    tssB.es = 1 * 8;
-    tssB.cs = 2 * 8;
-    tssB.ss = 1 * 8;
-    tssB.ds = 1 * 8;
-    tssB.fs = 1 * 8;
-    tssB.gs = 1 * 8;
-    *((int *)(taskB_esp + 4)) = (int)sheetBackgroud;
-    multitask_init();
+    task_init(memoryManager);
+    taskB = task_allocate();
+    taskB->tss.esp = memorymanager_allocate_4k(memoryManager, 64 * 1024) + 64 * 1024 - 8;
+    taskB->tss.eip = (int)&taskB_main;
+    taskB->tss.es = 1 * 8;
+    taskB->tss.cs = 2 * 8;
+    taskB->tss.ss = 1 * 8;
+    taskB->tss.ds = 1 * 8;
+    taskB->tss.fs = 1 * 8;
+    taskB->tss.gs = 1 * 8;
+    *((int *)(taskB->tss.esp + 4)) = (int)sheetBackgroud;
+    task_run(taskB);
 
     for (;;)
     {
@@ -200,7 +185,6 @@ void HariMain(void)
             else if (i == 10)
             {
                 putfont8_asc_sheet(sheetBackgroud, 0, 64, COLOR8_FFFFFF, COLOR8_008484, "10[sec]", 7);
-                farjump(0, 4 * 8);
             }
             else if (i == 3)
             {

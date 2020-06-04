@@ -202,7 +202,9 @@ void timer_init(struct TIMER *timer, struct FIFO32 *fifo, int data);
 void timer_set_time(struct TIMER *timer, unsigned int timeout);
 void inthandler20(int *esp);
 
-//TaskStatusSegment32
+//multitask.c
+#define MAX_TASKS 1000
+#define TASK_GDT0 3
 struct TaskStatusSegment32
 {
     int backlink, esp0, ss0, esp1, ss1, esp2, ss2, cr3;
@@ -210,8 +212,20 @@ struct TaskStatusSegment32
     int es, cs, ss, ds, fs, gs;
     int ldtr, iomap;
 };
-
-//multitask.c
-extern struct TIMER *multitaskTimer;
-void multitask_init(void);
-void multitask_taskswitch(void);
+struct TASK
+{
+    int selector, flags; //selectorはGDT番号のこと
+    struct TaskStatusSegment32 tss;
+};
+struct TASKCONTROL
+{
+    int running; //実行中のタスク数
+    int now;     //現在動いいるタスクのIndex
+    struct TASK *tasks[MAX_TASKS];
+    struct TASK tasks0[MAX_TASKS];
+};
+extern struct TIMER *taskTimer;
+struct TASK *task_init(struct MEMORYMANAGER *memoryManager);
+struct TASK *task_allocate();
+void task_run(struct TASK *task);
+void task_switch(void);
