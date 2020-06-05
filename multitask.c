@@ -23,6 +23,7 @@ struct TASK *task_init(struct MEMORYMANAGER *memoryManager)
     load_tr(task->selector);
     taskTimer = timer_allocate();
     timer_set_time(taskTimer, 2);
+    return task;
 }
 
 struct TASK *task_allocate()
