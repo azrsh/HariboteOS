@@ -78,3 +78,44 @@ void task_switch(void)
 
     return;
 }
+
+void task_sleep(struct TASK *task)
+{
+    int i;
+    char taskswitch = 0;
+    if (task->flags == 2) //タスクが実行中なら
+    {
+        if (task == taskControl->tasks[taskControl->now])
+        {
+            taskswitch = 1;
+        }
+
+        //taskがどこにいるか探索
+        for (i = 0; i < taskControl->running; i++)
+        {
+            if (taskControl->tasks[i] == task)
+            {
+                break;
+            }
+        }
+        taskControl->running--;
+        if (i < taskControl->now) //nowがずれる場合は修正
+        {
+            taskControl->now--;
+        }
+        for (; i < taskControl->running; i++)
+        {
+            taskControl->tasks[i] = taskControl->tasks[i + 1];
+        }
+        task->flags = 1; //動作していない状態
+        if (taskswitch != 0)
+        {
+            if (taskControl->now >= taskControl->running)
+            {
+                taskControl->now = 0;
+            }
+            farjump(0, taskControl->tasks[taskControl->now]->selector);
+        }
+    }
+    return;
+}

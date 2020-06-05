@@ -18,7 +18,7 @@ void HariMain(void)
     struct MOUSE_DECODE mouseDecode;
     struct MEMORYMANAGER *memoryManager = (struct MEMORYMANAGER *)MEMMAN_ADDR;
     struct SHEETCONTROL *sheetControl;
-    struct SHEET *sheetBackgroud, *sheetMouse, *sheetWindow;
+    struct SHEET *sheetBackground, *sheetMouse, *sheetWindow;
     unsigned char *bufferBackgroud, bufferMouse[256], *bufferWindow;
     static char ketTable[0x54] = {
         0, 0, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '^', 0, 0,
@@ -27,13 +27,13 @@ void HariMain(void)
         'B', 'N', 'M', ',', '.', '/', 0, '*', 0, ' ', 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, '7', '8', '9', '-', '4', '5', '6', '+', '1',
         '2', '3', '0', '.'};
-    struct TASK *taskB;
+    struct TASK *taskA, *taskB;
 
     init_gdtidt();
     init_pic();
     io_sti(); //IDT/GDTの初期化が終わったら割り込み禁止を解除する
 
-    fifo32_init(&fifo, 8, fifoBuffer);
+    fifo32_init(&fifo, 8, fifoBuffer, 0);
     init_pit();
     io_out8(PIC0_IMR, 0xf8); //PITとPIC1とキーボードを許可(11111000)
     io_out8(PIC1_IMR, 0xef); //マウスを許可(11101111)
@@ -59,14 +59,14 @@ void HariMain(void)
     init_palette();
 
     sheetControl = sheetcontrol_init(memoryManager, bootInfo->vram, bootInfo->screenX, bootInfo->screenY);
-    sheetBackgroud = sheet_allocate(sheetControl);
+    sheetBackground = sheet_allocate(sheetControl);
     sheetMouse = sheet_allocate(sheetControl);
     sheetWindow = sheet_allocate(sheetControl);
     bufferBackgroud = (unsigned char *)memorymanager_allocate_4k(memoryManager, bootInfo->screenX * bootInfo->screenY);
     bufferWindow = (unsigned char *)memorymanager_allocate_4k(memoryManager, 160 * 52);
-    sheet_set_buffer(sheetBackgroud, bufferBackgroud, bootInfo->screenX, bootInfo->screenY, -1); //透明色無し
-    sheet_set_buffer(sheetMouse, bufferMouse, 16, 16, 99);                                       //透明色は99番
-    sheet_set_buffer(sheetWindow, bufferWindow, 160, 52, -1);                                    //透明色無し
+    sheet_set_buffer(sheetBackground, bufferBackgroud, bootInfo->screenX, bootInfo->screenY, -1); //透明色無し
+    sheet_set_buffer(sheetMouse, bufferMouse, 16, 16, 99);                                        //透明色は99番
+    sheet_set_buffer(sheetWindow, bufferWindow, 160, 52, -1);                                     //透明色無し
 
     init_screen(bufferBackgroud, bootInfo->screenX, bootInfo->screenY);
     init_mouse_cursor8(bufferMouse, 99);
@@ -74,20 +74,21 @@ void HariMain(void)
     make_textbox8(sheetWindow, 8, 28, 144, 16, COLOR8_FFFFFF);
     cursorX = 8;
     cursorColor = COLOR8_FFFFFF;
-    sheet_slide(sheetBackgroud, 0, 0);
+    sheet_slide(sheetBackground, 0, 0);
     mouseX = (bootInfo->screenX - 16) / 2; //画面中央に配置
     mouseY = (bootInfo->screenY - 28 - 16) / 2;
     sheet_slide(sheetMouse, mouseX, mouseY);
     sheet_slide(sheetWindow, 80, 72);
-    sheet_updown(sheetBackgroud, 0);
+    sheet_updown(sheetBackground, 0);
     sheet_updown(sheetWindow, 1);
     sheet_updown(sheetMouse, 2);
     sprintf(s, "(%3d, %3d)", mouseX, mouseY);
-    putfont8_asc_sheet(sheetBackgroud, 0, 0, COLOR8_FFFFFF, COLOR8_008484, s, 10);
+    putfont8_asc_sheet(sheetBackground, 0, 0, COLOR8_FFFFFF, COLOR8_008484, s, 10);
     sprintf(s, "memory %dMB    free : %dKB", memoryTotal / (1024 * 1024), memorymanager_total(memoryManager) / 1024);
-    putfont8_asc_sheet(sheetBackgroud, 0, 32, COLOR8_FFFFFF, COLOR8_008484, s, 40);
+    putfont8_asc_sheet(sheetBackground, 0, 32, COLOR8_FFFFFF, COLOR8_008484, s, 40);
 
-    task_init(memoryManager);
+    taskA = task_init(memoryManager);
+    fifo.task = taskA;
     taskB = task_allocate();
     taskB->tss.esp = memorymanager_allocate_4k(memoryManager, 64 * 1024) + 64 * 1024 - 8;
     taskB->tss.eip = (int)&taskB_main;
@@ -97,7 +98,7 @@ void HariMain(void)
     taskB->tss.ds = 1 * 8;
     taskB->tss.fs = 1 * 8;
     taskB->tss.gs = 1 * 8;
-    *((int *)(taskB->tss.esp + 4)) = (int)sheetBackgroud;
+    *((int *)(taskB->tss.esp + 4)) = (int)sheetBackground;
     task_run(taskB);
 
     for (;;)
@@ -105,7 +106,8 @@ void HariMain(void)
         io_cli();
         if (fifo32_status(&fifo) == 0)
         {
-            io_stihlt();
+            task_sleep(taskA);
+            io_sti();
         }
         else
         {
@@ -115,7 +117,7 @@ void HariMain(void)
             if (i >= 256 && i < 512) //キーボードのデータだった時
             {
                 sprintf(s, "%02X", i - 256);
-                putfont8_asc_sheet(sheetBackgroud, 0, 16, COLOR8_FFFFFF, COLOR8_008484, s, 2);
+                putfont8_asc_sheet(sheetBackground, 0, 16, COLOR8_FFFFFF, COLOR8_008484, s, 2);
                 if (i < 0x54 + 256)
                 {
                     if (ketTable[i - 256] != 0 && cursorX < 144) //通常文字
@@ -156,7 +158,7 @@ void HariMain(void)
                         s[2] = 'C';
                     }
 
-                    putfont8_asc_sheet(sheetBackgroud, 32, 16, COLOR8_FFFFFF, COLOR8_008484, s, 15);
+                    putfont8_asc_sheet(sheetBackground, 32, 16, COLOR8_FFFFFF, COLOR8_008484, s, 15);
 
                     //マウスカーソルの移動
                     mouseX += mouseDecode.x;
@@ -172,7 +174,7 @@ void HariMain(void)
                         mouseY = bootInfo->screenY - 1;
 
                     sprintf(s, "(%3d, %3d)", mouseX, mouseY);
-                    putfont8_asc_sheet(sheetBackgroud, 0, 0, COLOR8_FFFFFF, COLOR8_008484, s, 10);
+                    putfont8_asc_sheet(sheetBackground, 0, 0, COLOR8_FFFFFF, COLOR8_008484, s, 10);
                     sheet_slide(sheetMouse, mouseX, mouseY); //カーソルの描画、sheet_refresh含む
 
                     if ((mouseDecode.button & 0x01) != 0)
@@ -184,11 +186,11 @@ void HariMain(void)
             }
             else if (i == 10)
             {
-                putfont8_asc_sheet(sheetBackgroud, 0, 64, COLOR8_FFFFFF, COLOR8_008484, "10[sec]", 7);
+                putfont8_asc_sheet(sheetBackground, 0, 64, COLOR8_FFFFFF, COLOR8_008484, "10[sec]", 7);
             }
             else if (i == 3)
             {
-                putfont8_asc_sheet(sheetBackgroud, 0, 80, COLOR8_FFFFFF, COLOR8_008484, "3[sec]", 6);
+                putfont8_asc_sheet(sheetBackground, 0, 80, COLOR8_FFFFFF, COLOR8_008484, "3[sec]", 6);
             }
             else if (i == 1)
             {
@@ -196,7 +198,7 @@ void HariMain(void)
                 timer_init(timer3, &fifo, 0);
                 boxfill8(bufferBackgroud, bootInfo->screenX, COLOR8_FFFFFF, 8, 96, 15, 111);
                 timer_set_time(timer3, 50);
-                sheet_refresh(sheetBackgroud, 8, 96, 16, 112);
+                sheet_refresh(sheetBackground, 8, 96, 16, 112);
             }
             else if (i == 0)
             {
@@ -204,7 +206,7 @@ void HariMain(void)
                 timer_init(timer3, &fifo, 1);
                 boxfill8(bufferBackgroud, bootInfo->screenX, COLOR8_008484, 8, 96, 16, 112);
                 timer_set_time(timer3, 50);
-                sheet_refresh(sheetBackgroud, 8, 96, 16, 112);
+                sheet_refresh(sheetBackground, 8, 96, 16, 112);
             }
         }
     }
@@ -295,7 +297,7 @@ void taskB_main(struct SHEET *sheetBackground)
     int i, fifoBuffer[128], count = 0, count0 = 0;
     char s[12];
 
-    fifo32_init(&fifo, 128, fifoBuffer);
+    fifo32_init(&fifo, 128, fifoBuffer, 0);
     timerPut = timer_allocate();
     timer_init(timerPut, &fifo, 1);
     timer_set_time(timerPut, 10);

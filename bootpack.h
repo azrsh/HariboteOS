@@ -29,21 +29,13 @@ unsigned int memory_test_sub(unsigned int start, unsigned int end);
 void farjump(int eip, int cs);
 
 //fifo.c
-struct FIFO8
-{
-    unsigned char *buffer;
-    int nextRead, nextWrite, size, free, flags;
-};
-void fifo8_init(struct FIFO8 *fifo, int size, unsigned char *buffer);
-int fifo8_put(struct FIFO8 *fifo, unsigned char data);
-int fifo8_get(struct FIFO8 *fifo);
-int fifo8_status(struct FIFO8 *fifo);
 struct FIFO32
 {
     int *buffer;
     int nextRead, nextWrite, size, free, flags;
+    struct TASK *task;
 };
-void fifo32_init(struct FIFO32 *fifo, int size, int *buffer);
+void fifo32_init(struct FIFO32 *fifo, int size, int *buffer, struct TASK *task);
 int fifo32_put(struct FIFO32 *fifo, int data);
 int fifo32_get(struct FIFO32 *fifo);
 int fifo32_status(struct FIFO32 *fifo);
@@ -229,3 +221,4 @@ struct TASK *task_init(struct MEMORYMANAGER *memoryManager);
 struct TASK *task_allocate();
 void task_run(struct TASK *task);
 void task_switch(void);
+void task_sleep(struct TASK *task);
