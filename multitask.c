@@ -16,13 +16,14 @@ struct TASK *task_init(struct MEMORYMANAGER *memoryManager)
         set_segment_descriptor(gdt + TASK_GDT0 + i, 103, (int)&taskControl->tasks0[i].tss, AR_TSS32);
     }
     task = task_allocate();
-    task->flags = 2; //動作中マーク
+    task->flags = 2;    //動作中マーク
+    task->priority = 2; //0.02秒
     taskControl->running = 1;
     taskControl->now = 0;
     taskControl->tasks[0] = task;
     load_tr(task->selector);
     taskTimer = timer_allocate();
-    timer_set_time(taskTimer, 2);
+    timer_set_time(taskTimer, task->priority);
     return task;
 }
 
@@ -56,8 +57,13 @@ struct TASK *task_allocate()
     return 0; //もう全部使用中
 }
 
-void task_run(struct TASK *task)
+void task_run(struct TASK *task, int priority)
 {
+    if (priority > 0)
+    {
+        task->priority = priority;
+    }
+
     task->flags = 2; //動作中マーク
     taskControl->tasks[taskControl->running] = task;
     taskControl->running++;
@@ -65,14 +71,16 @@ void task_run(struct TASK *task)
 
 void task_switch(void)
 {
-    timer_set_time(taskTimer, 2);
+    struct TASK *task;
+    taskControl->now++;
+    if (taskControl->now == taskControl->running)
+    {
+        taskControl->now = 0;
+    }
+    task = taskControl->tasks[taskControl->now];
+    timer_set_time(taskTimer, task->priority);
     if (taskControl->running >= 2)
     {
-        taskControl->now++;
-        if (taskControl->now == taskControl->running)
-        {
-            taskControl->now = 0;
-        }
         farjump(0, taskControl->tasks[taskControl->now]->selector);
     }
 

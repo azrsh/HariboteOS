@@ -207,6 +207,7 @@ struct TaskStatusSegment32
 struct TASK
 {
     int selector, flags; //selectorはGDT番号のこと
+    int priority;
     struct TaskStatusSegment32 tss;
 };
 struct TASKCONTROL
@@ -219,6 +220,6 @@ struct TASKCONTROL
 extern struct TIMER *taskTimer;
 struct TASK *task_init(struct MEMORYMANAGER *memoryManager);
 struct TASK *task_allocate();
-void task_run(struct TASK *task);
+void task_run(struct TASK *task, int priority);
 void task_switch(void);
 void task_sleep(struct TASK *task);
