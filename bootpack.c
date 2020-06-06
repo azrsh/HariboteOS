@@ -213,9 +213,9 @@ void HariMain(void)
                     timer_init(timer, &fifo, 1);
                     cursorColor = COLOR8_FFFFFF;
                 }
-                boxfill8(bufferWindow, bootInfo->screenX, cursorColor, cursorX, 28, cursorX + 7, 43);
                 timer_set_time(timer, 50);
-                sheet_refresh(bufferWindow, cursorX, 28, cursorX + 8, 44);
+                boxfill8(sheetWindow->buffer, sheetWindow->boxXSize, cursorColor, cursorX, 28, cursorX + 7, 43);
+                sheet_refresh(sheetWindow, cursorX, 28, cursorX + 8, 44);
             }
         }
     }
