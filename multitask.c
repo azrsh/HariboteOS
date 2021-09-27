@@ -7,11 +7,12 @@ struct TASK *task_now(void);
 void task_add(struct TASK *task);
 void task_remove(struct TASK *task);
 void task_switchsub(void);
+void task_idle(void);
 
 struct TASK *task_init(struct MEMORYMANAGER *memoryManager)
 {
     int i;
-    struct TASK *task;
+    struct TASK *task, *idle;
     struct SEGMENT_DESCRIPTOR *gdt = (struct SEGMENT_DESCRIPTOR *)ADRESS_GDT;
     taskControl = (struct TASKCONTROL *)memorymanager_allocate_4k(memoryManager, sizeof(struct TASKCONTROL));
     for (i = 0; i < MAX_TASKS; i++)
@@ -34,6 +35,19 @@ struct TASK *task_init(struct MEMORYMANAGER *memoryManager)
     load_tr(task->selector);
     taskTimer = timer_allocate();
     timer_set_time(taskTimer, task->priority);
+
+    // Task の番兵である task_idle をセットする
+    idle = task_allocate();
+    idle->tss.esp = memorymanager_allocate_4k(memoryManager, 64 * 1024) + 64 * 1024;
+    idle->tss.eip = (int)&task_idle;
+    idle->tss.es = 1 * 8;
+    idle->tss.cs = 2 * 8;
+    idle->tss.ss = 1 * 8;
+    idle->tss.ds = 1 * 8;
+    idle->tss.fs = 1 * 8;
+    idle->tss.gs = 1 * 8;
+    task_run(idle, MAX_TASKLEVELS - 1, 1);
+
     return task;
 }
 
@@ -194,5 +208,13 @@ void task_sleep(struct TASK *task)
         }
     }
     return;
+}
+
+void task_idle(void)
+{
+    for (;;)
+    {
+        io_hlt();
+    }
 }
 

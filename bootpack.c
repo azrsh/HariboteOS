@@ -81,7 +81,7 @@ void HariMain(void)
         taskB[i]->tss.fs = 1 * 8;
         taskB[i]->tss.gs = 1 * 8;
         *((int *)(taskB[i]->tss.esp + 4)) = (int)sheetWindowB[i];
-        task_run(taskB[i], 2, i + 1);
+        //task_run(taskB[i], 2, i + 1);
     }
 
     //sheetWindow
