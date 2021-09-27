@@ -3,6 +3,7 @@
 
 void make_window8(unsigned char *buffer, int xSize, int ySize, char *title,
                   char active);
+void make_wtitle8(unsigned char *buffer, int xSize, char *title, char active);
 void putfont8_asc_sheet(struct SHEET *sheet, int x, int y, int color,
                         int backgroundColor, char *s, int length);
 void make_textbox8(struct SHEET *sheet, int x0, int y0, int sx, int sy,
@@ -32,6 +33,7 @@ void HariMain(void) {
       0, ' ', 0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
       0, '7', '8', '9', '-', '4', '5', '6', '+', '1', '2', '3', '0', '.'};
   struct TASK *taskA, *taskConsole;
+  int keyTo = 0;
 
   init_gdtidt();
   init_pic();
@@ -96,7 +98,7 @@ void HariMain(void) {
   bufferWindow =
       (unsigned char *)memorymanager_allocate_4k(memoryManager, 160 * 52);
   sheet_set_buffer(sheetWindow, bufferWindow, 144, 52, -1); //透明色無し
-  make_window8(bufferWindow, 144, 52, "taskA", 1);
+  make_window8(bufferWindow, 144, 52, "Task A", 1);
   make_textbox8(sheetWindow, 8, 28, 128, 16, COLOR8_FFFFFF);
   cursorX = 8;
   cursorColor = COLOR8_FFFFFF;
@@ -133,7 +135,7 @@ void HariMain(void) {
       i = fifo32_get(&fifo);
       io_sti();
 
-      if (i >= 256 && i < 512) //キーボードのデータだった時
+      if (i >= 256 && i < 512) //キーボードのデータ
       {
         sprintf(s, "%02X", i - 256);
         putfont8_asc_sheet(sheetBackground, 0, 16, COLOR8_FFFFFF, COLOR8_008484,
@@ -155,6 +157,19 @@ void HariMain(void) {
           putfont8_asc_sheet(sheetWindow, cursorX, 28, COLOR8_000000,
                              COLOR8_FFFFFF, " ", 1);
           cursorX -= 8;
+        }
+        if (i == 256 + 0x0f) { // Tab
+          if (keyTo == 0) {
+            keyTo = 1;
+            make_wtitle8(bufferWindow, sheetWindow->boxXSize, "Task A", 0);
+            make_wtitle8(bufferConsole, sheetConsole->boxXSize, "Console", 1);
+          } else {
+            keyTo = 0;
+            make_wtitle8(bufferWindow, sheetWindow->boxXSize, "Task A", 1);
+            make_wtitle8(bufferConsole, sheetConsole->boxXSize, "Console", 0);
+          }
+          sheet_refresh(sheetWindow, 0, 0, sheetWindow->boxXSize, 21);
+          sheet_refresh(sheetConsole, 0, 0, sheetConsole->boxXSize, 21);
         }
         //カーソルの再描画
         boxfill8(sheetWindow->buffer, sheetWindow->boxXSize, cursorColor,
@@ -225,6 +240,19 @@ void HariMain(void) {
 
 void make_window8(unsigned char *buffer, int xSize, int ySize, char *title,
                   char active) {
+  boxfill8(buffer, xSize, COLOR8_C6C6C6, 0, 0, xSize - 1, 0);
+  boxfill8(buffer, xSize, COLOR8_FFFFFF, 1, 1, xSize - 2, 1);
+  boxfill8(buffer, xSize, COLOR8_C6C6C6, 0, 0, 0, ySize - 1);
+  boxfill8(buffer, xSize, COLOR8_FFFFFF, 1, 1, 1, ySize - 2);
+  boxfill8(buffer, xSize, COLOR8_848484, xSize - 2, 1, xSize - 2, ySize - 2);
+  boxfill8(buffer, xSize, COLOR8_000000, xSize - 1, 0, xSize - 1, ySize - 1);
+  boxfill8(buffer, xSize, COLOR8_C6C6C6, 2, 2, xSize - 3, ySize - 3);
+  boxfill8(buffer, xSize, COLOR8_848484, 1, ySize - 2, xSize - 2, ySize - 2);
+  boxfill8(buffer, xSize, COLOR8_000000, 0, ySize - 1, xSize - 1, ySize - 1);
+  make_wtitle8(buffer, xSize, title, active);
+}
+
+void make_wtitle8(unsigned char *buffer, int xSize, char *title, char active) {
   static char closeButton[14][16] = {
       "OOOOOOOOOOOOOOO@", "OQQQQQQQQQQQQQ$@", "OQQQQQQQQQQQQQ$@",
       "OQQQ@@QQQQ@@QQ$@", "OQQQQ@@QQ@@QQQ$@", "OQQQQQ@@@@QQQQ$@",
@@ -241,16 +269,7 @@ void make_window8(unsigned char *buffer, int xSize, int ySize, char *title,
     titleColor = COLOR8_C6C6C6;
     titleBackgroundColor = COLOR8_848484;
   }
-  boxfill8(buffer, xSize, COLOR8_C6C6C6, 0, 0, xSize - 1, 0);
-  boxfill8(buffer, xSize, COLOR8_FFFFFF, 1, 1, xSize - 2, 1);
-  boxfill8(buffer, xSize, COLOR8_C6C6C6, 0, 0, 0, ySize - 1);
-  boxfill8(buffer, xSize, COLOR8_FFFFFF, 1, 1, 1, ySize - 2);
-  boxfill8(buffer, xSize, COLOR8_848484, xSize - 2, 1, xSize - 2, ySize - 2);
-  boxfill8(buffer, xSize, COLOR8_000000, xSize - 1, 0, xSize - 1, ySize - 1);
-  boxfill8(buffer, xSize, COLOR8_C6C6C6, 2, 2, xSize - 3, ySize - 3);
   boxfill8(buffer, xSize, titleBackgroundColor, 3, 3, xSize - 4, 20);
-  boxfill8(buffer, xSize, COLOR8_848484, 1, ySize - 2, xSize - 2, ySize - 2);
-  boxfill8(buffer, xSize, COLOR8_000000, 0, ySize - 1, xSize - 1, ySize - 1);
   putfonts8_asc(buffer, xSize, 24, 4, titleColor, title);
   for (y = 0; y < 14; y++) {
     for (x = 0; x < 16; x++) {
