@@ -3,6 +3,11 @@
 struct TASKCONTROL *taskControl;
 struct TIMER *taskTimer;
 
+struct TASK *task_now(void);
+void task_add(struct TASK *task);
+void task_remove(struct TASK *task);
+void task_switchsub(void);
+
 struct TASK *task_init(struct MEMORYMANAGER *memoryManager)
 {
     int i;
@@ -15,12 +20,17 @@ struct TASK *task_init(struct MEMORYMANAGER *memoryManager)
         taskControl->tasks0[i].selector = (TASK_GDT0 + i) * 8;
         set_segment_descriptor(gdt + TASK_GDT0 + i, 103, (int)&taskControl->tasks0[i].tss, AR_TSS32);
     }
+    for (i = 0; i < MAX_TASKLEVELS; i++)
+    {
+        taskControl->levels[i].running = 0;
+        taskControl->levels[i].now = 0;
+    }
     task = task_allocate();
     task->flags = 2;    //動作中マーク
     task->priority = 2; //0.02秒
-    taskControl->running = 1;
-    taskControl->now = 0;
-    taskControl->tasks[0] = task;
+    task->level = 0;    //最高レベル
+    task_add(task);
+    task_switchsub(); //レベル設定
     load_tr(task->selector);
     taskTimer = timer_allocate();
     timer_set_time(taskTimer, task->priority);
@@ -57,73 +67,132 @@ struct TASK *task_allocate()
     return 0; //もう全部使用中
 }
 
-void task_run(struct TASK *task, int priority)
+struct TASK *task_now(void)
 {
+    struct TASKLEVEL *taskLevel = &taskControl->levels[taskControl->nowLevel];
+    return taskLevel->tasks[taskLevel->now];
+}
+
+void task_add(struct TASK *task)
+{
+    struct TASKLEVEL *taskLevel = &taskControl->levels[task->level];
+    if (taskLevel->running >= MAX_TASKS_LEVEL)
+        return;
+
+    taskLevel->tasks[taskLevel->running] = task;
+    taskLevel->running++;
+    task->flags = 2;
+    return;
+}
+
+void task_remove(struct TASK *task)
+{
+    int i;
+    struct TASKLEVEL *taskLevel = &taskControl->levels[task->level];
+
+    for (i = 0; i < taskLevel->running; i++)
+    {
+        if (taskLevel->tasks[i] == task)
+        {
+            break;
+        }
+    }
+
+    taskLevel->running--;
+    if (i < taskLevel->now)
+    {
+        taskLevel->now--;
+    }
+
+    if (taskLevel->now >= taskLevel->running)
+    {
+        taskLevel->now = 0;
+    }
+    task->flags = 1;
+
+    for (; i < taskLevel->running; i++)
+    {
+        taskLevel->tasks[i] = taskLevel->tasks[i + 1];
+    }
+    return;
+}
+
+void task_run(struct TASK *task, int level, int priority)
+{
+    if (level < 0)
+    {
+        level = task->level; //レベルを変更しない
+    }
     if (priority > 0)
     {
         task->priority = priority;
     }
 
-    task->flags = 2; //動作中マーク
-    taskControl->tasks[taskControl->running] = task;
-    taskControl->running++;
+    if (task->flags == 2 && task->level != level)
+    {
+        task_remove(task);
+    }
+    if (task->flags != 2) //スリープ状態から起動する場合
+    {
+        task->level = level;
+        task_add(task);
+    }
+    taskControl->levelChange = 1; //次回タスクスイッチの時にレベルを見直す
+    return;
 }
 
 void task_switch(void)
 {
-    struct TASK *task;
-    taskControl->now++;
-    if (taskControl->now == taskControl->running)
+    struct TASKLEVEL *taskLevel = &taskControl->levels[taskControl->nowLevel];
+    struct TASK *newTask, *nowTask = taskLevel->tasks[taskLevel->now];
+    taskLevel->now++;
+    if (taskLevel->now == taskLevel->running)
     {
-        taskControl->now = 0;
+        taskLevel->now = 0;
     }
-    task = taskControl->tasks[taskControl->now];
-    timer_set_time(taskTimer, task->priority);
-    if (taskControl->running >= 2)
+    if (taskControl->levelChange != 0)
     {
-        farjump(0, taskControl->tasks[taskControl->now]->selector);
+        task_switchsub();
+        taskLevel = &taskControl->levels[taskControl->nowLevel];
     }
+    newTask = taskLevel->tasks[taskLevel->now];
+    timer_set_time(taskTimer, newTask->priority);
+    if (newTask != nowTask)
+    {
+        farjump(0, newTask->selector);
+    }
+    return;
+}
 
+void task_switchsub(void)
+{
+    int i;
+    for (i = 0; i < MAX_TASKLEVELS; i++)
+    {
+        if (taskControl->levels[i].running > 0)
+        {
+            break;
+        }
+    }
+    taskControl->nowLevel = i;
+    taskControl->levelChange = 0;
     return;
 }
 
 void task_sleep(struct TASK *task)
 {
-    int i;
-    char taskswitch = 0;
-    if (task->flags == 2) //タスクが実行中なら
+    struct TASK *nowTask;
+    if (task->flags == 2)
     {
-        if (task == taskControl->tasks[taskControl->now])
+        nowTask = task_now();
+        task_remove(task); //これを実行するとflagは1になる
+        if (task == nowTask)
         {
-            taskswitch = 1;
-        }
-
-        //taskがどこにいるか探索
-        for (i = 0; i < taskControl->running; i++)
-        {
-            if (taskControl->tasks[i] == task)
-            {
-                break;
-            }
-        }
-        taskControl->running--;
-        if (i < taskControl->now) //nowがずれる場合は修正
-        {
-            taskControl->now--;
-        }
-        for (; i < taskControl->running; i++)
-        {
-            taskControl->tasks[i] = taskControl->tasks[i + 1];
-        }
-        task->flags = 1; //動作していない状態
-        if (taskswitch != 0)
-        {
-            if (taskControl->now >= taskControl->running)
-            {
-                taskControl->now = 0;
-            }
-            farjump(0, taskControl->tasks[taskControl->now]->selector);
+            task_switchsub(); //自分自身がSleepするのでタスクスイッチが必要
+            nowTask = task_now();
+            farjump(0, nowTask->selector);
         }
     }
     return;
 }
+

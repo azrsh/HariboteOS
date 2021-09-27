@@ -196,6 +196,8 @@ void inthandler20(int *esp);
 
 //multitask.c
 #define MAX_TASKS 1000
+#define MAX_TASKS_LEVEL 100
+#define MAX_TASKLEVELS 10
 #define TASK_GDT0 3
 struct TaskStatusSegment32
 {
@@ -207,19 +209,25 @@ struct TaskStatusSegment32
 struct TASK
 {
     int selector, flags; //selectorはGDT番号のこと
-    int priority;
+    int level, priority;
     struct TaskStatusSegment32 tss;
 };
-struct TASKCONTROL
+struct TASKLEVEL
 {
     int running; //実行中のタスク数
     int now;     //現在動いいるタスクのIndex
-    struct TASK *tasks[MAX_TASKS];
+    struct TASK *tasks[MAX_TASKS_LEVEL];
+};
+struct TASKCONTROL
+{
+    int nowLevel;
+    int levelChange;
+    struct TASKLEVEL levels[MAX_TASKLEVELS];
     struct TASK tasks0[MAX_TASKS];
 };
 extern struct TIMER *taskTimer;
 struct TASK *task_init(struct MEMORYMANAGER *memoryManager);
 struct TASK *task_allocate();
-void task_run(struct TASK *task, int priority);
+void task_run(struct TASK *task, int level, int priority);
 void task_switch(void);
 void task_sleep(struct TASK *task);
