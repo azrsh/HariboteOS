@@ -3,14 +3,14 @@
 struct FIFO32 *keyFifo;
 int keyData0;
 
-//PS/2キーボードからの割り込み
-void inthandler21(int *esp)
-{
-    int data;
-    io_out8(PIC0_OCW2, 0x61); //PICに割り込みを受け取ったことを通知(IRQ1=0x61,IRQ3=0x63)
-    data = io_in8(PORT_KEYDAT);
-    fifo32_put(keyFifo, data + keyData0);
-    return;
+// PS/2キーボードからの割り込み
+void inthandler21(int *esp) {
+  int data;
+  io_out8(PIC0_OCW2,
+          0x61); // PICに割り込みを受け取ったことを通知(IRQ1=0x61,IRQ3=0x63)
+  data = io_in8(PORT_KEYDAT);
+  fifo32_put(keyFifo, data + keyData0);
+  return;
 }
 
 #define PORT_KEYSTA 0x0064
@@ -19,28 +19,24 @@ void inthandler21(int *esp)
 #define KBC_MODE 0x47
 
 //キーボードコントローラがデータを送信可能になるまで待機
-void wait_KBC_sendready(void)
-{
-    for (;;)
-    {
-        if ((io_in8(PORT_KEYSTA) & KEYSTA_SEND_NOTREADY) == 0)
-        {
-            break;
-        }
+void wait_KBC_sendready(void) {
+  for (;;) {
+    if ((io_in8(PORT_KEYSTA) & KEYSTA_SEND_NOTREADY) == 0) {
+      break;
     }
+  }
 
-    return;
+  return;
 }
 
 //キーボードコントローラの初期化
-void init_keyboard(struct FIFO32 *fifo, int data0)
-{
-    keyFifo = fifo;
-    keyData0 = data0;
+void init_keyboard(struct FIFO32 *fifo, int data0) {
+  keyFifo = fifo;
+  keyData0 = data0;
 
-    wait_KBC_sendready();
-    io_out8(PORT_KEYCMD, KEYCMD_WRITE_MODE);
-    wait_KBC_sendready();
-    io_out8(PORT_KEYDAT, KBC_MODE);
-    return;
+  wait_KBC_sendready();
+  io_out8(PORT_KEYCMD, KEYCMD_WRITE_MODE);
+  wait_KBC_sendready();
+  io_out8(PORT_KEYDAT, KBC_MODE);
+  return;
 }
