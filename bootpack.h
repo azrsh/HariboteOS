@@ -229,6 +229,7 @@ struct TASKCONTROL {
 extern struct TIMER *taskTimer;
 struct TASK *task_init(struct MEMORYMANAGER *memoryManager);
 struct TASK *task_allocate();
+struct TASK *task_now(void);
 void task_run(struct TASK *task, int level, int priority);
 void task_switch(void);
 void task_sleep(struct TASK *task);

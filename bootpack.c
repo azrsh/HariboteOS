@@ -7,7 +7,7 @@ void putfont8_asc_sheet(struct SHEET *sheet, int x, int y, int color,
                         int backgroundColor, char *s, int length);
 void make_textbox8(struct SHEET *sheet, int x0, int y0, int sx, int sy,
                    int color);
-void taskB_main(struct SHEET *sheetBackground);
+void console_task(struct SHEET *sheet);
 
 void HariMain(void) {
   struct BOOTINFO *bootInfo =
@@ -21,9 +21,9 @@ void HariMain(void) {
   struct MOUSE_DECODE mouseDecode;
   struct MEMORYMANAGER *memoryManager = (struct MEMORYMANAGER *)MEMMAN_ADDR;
   struct SHEETCONTROL *sheetControl;
-  struct SHEET *sheetBackground, *sheetMouse, *sheetWindow, *sheetWindowB[3];
+  struct SHEET *sheetBackground, *sheetMouse, *sheetWindow, *sheetConsole;
   unsigned char *bufferBackgroud, bufferMouse[256], *bufferWindow,
-      *bufferWindowB;
+      *bufferConsole;
   static char ketTable[0x54] = {
       0, 0,   '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '^',
       0, 0,   'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '@', '[',
@@ -31,7 +31,7 @@ void HariMain(void) {
       0, ']', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', ',', '.', '/', 0,   '*',
       0, ' ', 0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
       0, '7', '8', '9', '-', '4', '5', '6', '+', '1', '2', '3', '0', '.'};
-  struct TASK *taskA, *taskB[3];
+  struct TASK *taskA, *taskConsole;
 
   init_gdtidt();
   init_pic();
@@ -71,27 +71,25 @@ void HariMain(void) {
                    bootInfo->screenY, -1); //透明色無し
   init_screen(bufferBackgroud, bootInfo->screenX, bootInfo->screenY);
 
-  // sheetWindowBs
-  for (i = 0; i < 3; i++) {
-    sheetWindowB[i] = sheet_allocate(sheetControl);
-    bufferWindowB =
-        (unsigned char *)memorymanager_allocate_4k(memoryManager, 144 * 52);
-    sheet_set_buffer(sheetWindowB[i], bufferWindowB, 144, 52, -1); //透明色無し
-    sprintf(s, "taskB%d", i);
-    make_window8(bufferWindowB, 144, 52, s, 0);
-    taskB[i] = task_allocate();
-    taskB[i]->tss.esp =
-        memorymanager_allocate_4k(memoryManager, 64 * 1024) + 64 * 1024 - 8;
-    taskB[i]->tss.eip = (int)&taskB_main;
-    taskB[i]->tss.es = 1 * 8;
-    taskB[i]->tss.cs = 2 * 8;
-    taskB[i]->tss.ss = 1 * 8;
-    taskB[i]->tss.ds = 1 * 8;
-    taskB[i]->tss.fs = 1 * 8;
-    taskB[i]->tss.gs = 1 * 8;
-    *((int *)(taskB[i]->tss.esp + 4)) = (int)sheetWindowB[i];
-    // task_run(taskB[i], 2, i + 1);
-  }
+  // sheetConsole
+  sheetConsole = sheet_allocate(sheetControl);
+  bufferConsole =
+      (unsigned char *)memorymanager_allocate_4k(memoryManager, 256 * 165);
+  sheet_set_buffer(sheetConsole, bufferConsole, 256, 165, -1); //透明色無し
+  make_window8(bufferConsole, 256, 165, "console", 0);
+  make_textbox8(sheetConsole, 8, 28, 240, 128, COLOR8_000000);
+  taskConsole = task_allocate();
+  taskConsole->tss.esp =
+      memorymanager_allocate_4k(memoryManager, 64 * 1024) + 64 * 1024 - 8;
+  taskConsole->tss.eip = (int)&console_task;
+  taskConsole->tss.es = 1 * 8;
+  taskConsole->tss.cs = 2 * 8;
+  taskConsole->tss.ss = 1 * 8;
+  taskConsole->tss.ds = 1 * 8;
+  taskConsole->tss.fs = 1 * 8;
+  taskConsole->tss.gs = 1 * 8;
+  *((int *)(taskConsole->tss.esp + 4)) = (int)sheetConsole;
+  task_run(taskConsole, 2, 2); // level=2 priority=2
 
   // sheetWindow
   sheetWindow = sheet_allocate(sheetControl);
@@ -111,17 +109,13 @@ void HariMain(void) {
   mouseY = (bootInfo->screenY - 28 - 16) / 2;
 
   sheet_slide(sheetBackground, 0, 0);
-  sheet_slide(sheetWindow, 8, 56);
-  sheet_slide(sheetWindowB[0], 168, 56);
-  sheet_slide(sheetWindowB[1], 8, 116);
-  sheet_slide(sheetWindowB[2], 168, 116);
+  sheet_slide(sheetConsole, 32, 4);
+  sheet_slide(sheetWindow, 64, 56);
   sheet_slide(sheetMouse, mouseX, mouseY);
   sheet_updown(sheetBackground, 0);
-  sheet_updown(sheetWindow, 1);
-  sheet_updown(sheetWindowB[0], 2);
-  sheet_updown(sheetWindowB[1], 3);
-  sheet_updown(sheetWindowB[2], 4);
-  sheet_updown(sheetMouse, 5);
+  sheet_updown(sheetConsole, 1);
+  sheet_updown(sheetWindow, 2);
+  sheet_updown(sheetMouse, 3);
   sprintf(s, "(%3d, %3d)", mouseX, mouseY);
   putfont8_asc_sheet(sheetBackground, 0, 0, COLOR8_FFFFFF, COLOR8_008484, s,
                      10);
@@ -306,31 +300,38 @@ void make_textbox8(struct SHEET *sheet, int x0, int y0, int sx, int sy,
            y1 + 0);
 }
 
-void taskB_main(struct SHEET *sheetWindowB) {
+void console_task(struct SHEET *sheet) {
   struct FIFO32 fifo;
-  struct TIMER *timer1s;
-  int i, fifoBuffer[128], count = 0, count0 = 0;
-  char s[12];
+  struct TIMER *timer;
+  struct TASK *task = task_now();
 
-  fifo32_init(&fifo, 128, fifoBuffer, 0);
-  timer1s = timer_allocate();
-  timer_init(timer1s, &fifo, 100);
-  timer_set_time(timer1s, 100);
+  int i, fifoBuffer[128], cursorX = 8, cursorColor = COLOR8_000000;
+  fifo32_init(&fifo, 128, fifoBuffer, task);
+
+  timer = timer_allocate();
+  timer_init(timer, &fifo, 1);
+  timer_set_time(timer, 50);
 
   for (;;) {
-    count++;
     io_cli();
     if (fifo32_status(&fifo) == 0) {
+      task_sleep(task);
       io_sti();
     } else {
       i = fifo32_get(&fifo);
       io_sti();
-      if (i == 100) {
-        sprintf(s, "%11d", count - count0);
-        putfont8_asc_sheet(sheetWindowB, 24, 28, COLOR8_000000, COLOR8_C6C6C6,
-                           s, 11);
-        count0 = count;
-        timer_set_time(timer1s, 100);
+      if (i <= 1) {
+        if (i != 0) {
+          timer_init(timer, &fifo, 0);
+          cursorColor = COLOR8_FFFFFF;
+        } else {
+          timer_init(timer, &fifo, 1);
+          cursorColor = COLOR8_000000;
+        }
+        timer_set_time(timer, 50);
+        boxfill8(sheet->buffer, sheet->boxXSize, cursorColor, cursorX, 28,
+                 cursorX + 7, 43);
+        sheet_refresh(sheet, cursorX, 28, cursorX + 8, 44);
       }
     }
   }
